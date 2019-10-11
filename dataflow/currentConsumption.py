@@ -238,7 +238,7 @@ def run(argv=None):
     avgs = (lines
              | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(3600, 900, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
-             | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], s.split(',')[2]))
+             | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(s.split(',')[2])))
              | 'GetAvgByBuilding' >> Mean.PerKey())
     
     '''
