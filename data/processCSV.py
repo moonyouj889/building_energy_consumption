@@ -72,7 +72,7 @@ def translate_fieldNames(fieldNames):
             fieldMode = 'NULLABLE'
             if meterTypeIndicator == 'M':
                 meterType = 'Gen'
-                fieldName = '{}_{}'.format(meterType, buildingNum)
+                fieldName = '{}'.format(meterType)
             # handle sub meter
             else:
                 meterType = 'Sub'
@@ -81,7 +81,7 @@ def translate_fieldNames(fieldNames):
                 while field[idStart].isnumeric():
                     idNum += field[idStart]
                     idStart += 1
-                fieldName = '{}_{}_{}'.format(meterType, buildingNum, idNum)
+                fieldName = '{}_{}'.format(meterType, idNum)
 
             schema['fields'].append({'name': fieldName,
                                      'type': fieldType,
@@ -121,19 +121,19 @@ if __name__ == '__main__':
         logging.info(
             "INFO: processed_data directory recreated.")
 
-    with open(FIELDNAMES_OUTPUT, 'w') as fieldNames_file:
-        splitNames = []
-        curr_fields = []
-        curr_building_id = 1
-        for field in fieldNames[1:]:
-            if field[4] != curr_building_id:
-                if len(curr_fields) > 0: splitNames.append(curr_fields)
-                curr_fields = []
-                curr_building_id = field[4]
-            curr_fields.append(field)
-        json.dump(splitNames, fieldNames_file)
-        logging.info(
-            "INFO: fieldNames.txt created.")
+    # with open(FIELDNAMES_OUTPUT, 'w') as fieldNames_file:
+    #     splitNames = []
+    #     curr_fields = []
+    #     curr_building_id = 1
+    #     for field in fieldNames[1:]:
+    #         if field[4] != curr_building_id:
+    #             if len(curr_fields) > 0: splitNames.append(curr_fields)
+    #             curr_fields = []
+    #             curr_building_id = field[4]
+    #         curr_fields.append(field)
+    #     json.dump(splitNames, fieldNames_file)
+    #     logging.info(
+    #         "INFO: fieldNames.txt created.")
 
     with open(SCHEMA_OUTPUT, 'w') as schema_file:
         json.dump(bq_schemas, schema_file)

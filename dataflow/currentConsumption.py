@@ -47,6 +47,17 @@ class BQTranslateTransformation:
         schema_file = os.path.join(dir_path, SCHEMA_PATH) 
         with open(schema_file) as bq_schema_file:
             self.schemas = json.load(bq_schema_file)
+        self.stream_schema = {'fields':[
+                                {'name': 'timestamp', 
+                                 'type': 'TIMESTAMP', 
+                                 'mode':'REQUIRED'},
+                                {'name': 'building_id',
+                                 'type': 'INTEGER',
+                                 'mode': 'REQUIRED'},
+                                {'name': 'Gen_Avg',
+                                 'type': 'INTEGER',
+                                 'mode': 'REQUIRED'}]}
+
 
     def parse_method_load(self, string_input):
         '''This method translates a single line of comma separated values to a
@@ -76,8 +87,6 @@ class BQTranslateTransformation:
                     '2_Sub_1': 2590
                     }
         '''
-    #     reader = csv.reader(string_input.split('\n'))
-    # for csv_row in reader:
         row = {}
         schema = None
         i = 0
@@ -99,36 +108,26 @@ class BQTranslateTransformation:
         logging.info('pasedRow: {}'.format(row))
         return row
 
-    #TODO: finish this method
-    def parse_method_stream(self, string_input):
+
+    def parse_method_stream(self, k, v):
     ''' Same as parse_method_load(), but for hourly averages of each sensor, 
         combined to one table
 
         Args:
-            string_input: A comma separated list of values in the form of
-            timestamp,building id,general meter reading, and variable size of sub meter readings
-                ex1)2017-03-31T20:00:00-04:00,1,6443.0,1941.0,40.0
-                ex2)2017-03-31T20:00:00-04:00,2,5397.0,2590.0
+            k,v pair of building Id and main meter reading
         Returns:
             A dict mapping BigQuery column names as keys to the corresponding value
-            parsed from string_input. Deciding which schema to use by building_id.
-            The schemas of 8 buildings can be retrieved from bq_schema.txt, 
-            produced by processCSV.py and saved onto self.schemas
+            parsed from (k, v). The timestamp uses the current time 
+            (when the aggregation is calculated) instead of matching to the fake time
+            in case of using this logic for real time data.
 
-                ex1)
-                    {'timestamp': '2017-03-31T20:00:00-04:00',
-                    'building_id': 1,
-                    '1_Gen': 6443,
-                    '1_Sub_1': 1941,
-                    '1_Sub_14': 40
-                    }
-                ex2)
-                    {'timestamp': '2017-03-31T20:00:00-04:00',
-                    'building_id': 2,
-                    '2_Gen': 5397,
-                    '2_Sub_1': 2590
-                    }
+                {'timestamp': [Actual Time Right Now],
+                'building_id': 1,
+                'Gen_Avg': 6443}
         '''
+        return {'timestamp': datetime.datetime.utcnow(),
+                'building_id': int(k),
+                'Gen_Avg': int(v)}
 
 
 def run(argv=None):
@@ -238,8 +237,9 @@ def run(argv=None):
     # TODO: beam.ParDo(GroupByKey()) to put meters together
     avgs = (lines
              | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(3600, 900, offset=0))
-             | 'ByMeter' >> beam.)
-             | 'GetAvgByMeter' >> beam.)
+             # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
+             | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], s.split(',')[2]))
+             | 'GetAvgByBuilding' >> Mean.PerKey())
     
     '''
     classapache_beam.transforms.window.FixedWindows(size, offset=0)
@@ -253,16 +253,14 @@ def run(argv=None):
     '''
     
     # Convert row of str to BigQuery rows, and append to the BQ table.
-    (avgs | 'StringToBigQueryRowStream' >> beam.Map(lambda s: rowToBQ.parse_method_stream(s))
+    (avgs | 'KVToBigQueryRowStream' >> beam.Map(lambda k,v: rowToBQ.parse_method_stream(k,v))
           | 'WriteToBigQueryStream' >> beam.io.WriteToBigQuery(
                 table = known_args.output_s,
-                schema = stream_schema,
-                create_disposition = beam.io.BigQueryDisposition.CREATE_IF_NEEDED,
-                write_disposition = beam.io.BigQueryDisposition.WRITE_APPEND)
-    )
+                schema = rowToBQ.stream_schema))
+
     # write message to pubsub with a different output_topic 
     # for users to subscribe to and retrieve real time analysis data
-    (avgs | 'PublishToPubSub' >> )
+    # (avgs | 'PublishToPubSub' >> )
     
     p.run()
 
