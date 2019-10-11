@@ -20,6 +20,7 @@ import json
 import csv
 import argparse
 import os
+import datetime
 
 import apache_beam as beam
 import apache_beam.transforms.window as window
