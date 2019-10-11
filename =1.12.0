@@ -1,7 +1,0 @@
-Collecting six
-  Downloading https://files.pythonhosted.org/packages/73/fb/00a976f728d0d1fecfe898238ce23f502a721c0ac0ecfedb80e0d88c64e9/six-1.12.0-py2.py3-none-any.whl
-Installing collected packages: six
-  Found existing installation: six 1.10.0
-    Uninstalling six-1.10.0:
-      Successfully uninstalled six-1.10.0
-Successfully installed six-1.12.0

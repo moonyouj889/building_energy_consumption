@@ -71,7 +71,7 @@ def translate_fieldNames(fieldNames):
             fieldMode = 'NULLABLE'
             if meterTypeIndicator == 'M':
                 meterType = 'Gen'
-                fieldName = '{}_{}'.format(buildingNum, meterType)
+                fieldName = '{}_{}'.format(meterType, buildingNum)
             # handle sub meter
             else:
                 meterType = 'Sub'
@@ -80,7 +80,7 @@ def translate_fieldNames(fieldNames):
                 while field[idStart].isnumeric():
                     idNum += field[idStart]
                     idStart += 1
-                fieldName = '{}_{}_{}'.format(buildingNum, meterType, idNum)
+                fieldName = '{}_{}_{}'.format(meterType, buildingNum, idNum)
 
             schema['fields'].append({'name': fieldName,
                                      'type': fieldType,
