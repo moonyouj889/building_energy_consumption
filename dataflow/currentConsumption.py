@@ -33,6 +33,10 @@ DATA_COLLECTION_FREQUENCY = 4
 ROWS_PER_DAY = 10
 # ROWS_PER_DAY = DATA_COLLECTION_FREQUENCY * 24
 SCHEMA_PATH = 'data/processed_data/bq_schemas.txt'
+# WINDOW_SIZE = 3600
+# WINDOW_PERIOD = 900
+WINDOW_SIZE = 60
+WINDOW_PERIOD = 15
 
 
 class BQTranslateTransformation:
@@ -236,7 +240,7 @@ def run(argv=None):
     # sliding window of 1 hour, period of 15 minutes
     # TODO: beam.ParDo(GroupByKey()) to put meters together
     avgs = (lines
-             | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(3600, 900, offset=0))
+             | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
              | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2]))))
              | 'GetAvgByBuilding' >> Mean.PerKey())
