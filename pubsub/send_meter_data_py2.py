@@ -17,7 +17,7 @@ import time
 import dateutil.parser
 
 TOPIC = 'energy'
-INPUT = './chrono-comma-sep-buildings-energy-consumption-clean-data.csv.gz'
+INPUT = './data/processed_data/chrono-comma-sep-buildings-energy-consumption-clean-data.csv.gz'
 
 
 def iso_to_datetime(timestamp):

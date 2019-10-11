@@ -19,6 +19,7 @@ import argparse
 import os
 import apache_beam as beam
 import apache_beam.transforms.window as window
+from apache_beam.pipeline import PipelineOptions
 import logging
 import json
 import csv
@@ -27,7 +28,7 @@ import csv
 # data gets collected 4 times per hour (every 15 minutes)
 DATA_COLLECTION_FREQUENCY = 4
 ROWS_PER_DAY = DATA_COLLECTION_FREQUENCY * 24
-SCHEMA_PATH = '../data/processed_data/bq_schema.txt'
+SCHEMA_PATH = 'data/processed_data/bq_schemas.txt'
 
 
 class BQTranslateTransformation:
@@ -38,7 +39,9 @@ class BQTranslateTransformation:
         # load_schema taken from json file extracted from processCSV.py 
         # in a realistic scenario, you won't be able to automate it like this.
         # and probably have to manually insert schema
-        with open(SCHEMA_PATH) as bq_schema_file:
+        dir_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        schema_file = os.path.join(dir_path, SCHEMA_PATH) 
+        with open(schema_file) as bq_schema_file:
             self.schemas = json.load(bq_schema_file)
 
     def parse_method_load(self, string_input):
@@ -89,6 +92,7 @@ class BQTranslateTransformation:
                 fieldName = schema[i]['name']
             row[fieldName] = value
             i += 1
+        logging.info('pasedRow: {}'.format(row))
         return row
     #TODO: finish this method
     def parse_method_stream(self, string_input): pass
@@ -119,12 +123,11 @@ def run(argv=None):
     )
 
     known_args, pipeline_args = parser.parse_known_args(argv)
-
+    #logging.info('parsed args: {}'.format(known_args))
     # Initiate the pipeline using the pipeline arguments passed in from the
     # command line.  This includes information like where Dataflow should
     # store temp files, and what the project id is.
     pipeline_options = PipelineOptions(pipeline_args)
-    pipeline_options.streaming = True
     p = beam.Pipeline(options=pipeline_options)
     # schema = parse_table_schema_from_json(data_ingestion.schema_str)
 
@@ -161,10 +164,12 @@ def run(argv=None):
     # load_schema taken from json file extracted from process csv. 
     # in a realistic scenario, you won't be able to automate it like this.
     # probably have to manually insert schema
-    with open(SCHEMA_PATH) as bq_schema_file:
-        load_schema = json.load(bq_schema_file)
+    # with open(SCHEMA_PATH) as bq_schema_file:
+    #    load_schema = json.load(bq_schema_file)
     load_schema = rowToBQ.schemas
-
+    #logging.info('schema1: {}'.format(load_schema[0]))
+    #logging.info('schema\'s data type: {}'.format(type(load_schema[0])))
+    #logging.info('load_schema[0][\'fields\']{}'.format(load_schema[0]['fields']))
     # filter and load into 8 tables based off of the given table suffix argument
     load1 = (rows | 'FilterBuilding1' >> beam.Filter(lambda row: row['building_id'] == 1)
                   | 'B1BQLoad' >> beam.io.WriteToBigQuery(
