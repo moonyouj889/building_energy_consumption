@@ -129,9 +129,11 @@ class BQTranslateTransformation:
                 'building_id': 1,
                 'Gen_Avg': 6443}
         '''
-        return {'timestamp': datetime.datetime.utcnow(),
+        row = {'timestamp': datetime.datetime.utcnow(),
                 'building_id': int(k),
                 'Gen_Avg': int(v)}
+        logging.info('pasedRow for Streams: {}'.format(row))
+        return row
 
 
 def run(argv=None):
@@ -257,7 +259,7 @@ def run(argv=None):
     '''
     
     # Convert row of str to BigQuery rows, and append to the BQ table.
-    (avgs | 'KVToBigQueryRowStream' >> beam.Map(lambda k,v: rowToBQ.parse_method_stream(k,v))
+    (avgs | 'KVToBigQueryRowStream' >> beam.MapTuple(lambda k,v: rowToBQ.parse_method_stream(k,v))
           | 'WriteToBigQueryStream' >> beam.io.WriteToBigQuery(
                 table = known_args.output_s,
                 schema = rowToBQ.stream_schema))
