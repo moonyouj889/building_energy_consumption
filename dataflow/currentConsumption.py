@@ -27,7 +27,8 @@ import csv
 
 # data gets collected 4 times per hour (every 15 minutes)
 DATA_COLLECTION_FREQUENCY = 4
-ROWS_PER_DAY = DATA_COLLECTION_FREQUENCY * 24
+ROWS_PER_DAY = 10
+# ROWS_PER_DAY = DATA_COLLECTION_FREQUENCY * 24
 SCHEMA_PATH = 'data/processed_data/bq_schemas.txt'
 
 
