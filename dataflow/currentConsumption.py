@@ -110,7 +110,7 @@ class BQTranslateTransformation:
 
 
     def parse_method_stream(self, k, v):
-    ''' Same as parse_method_load(), but for hourly averages of each sensor, 
+        ''' Same as parse_method_load(), but for hourly averages of each sensor, 
         combined to one table
 
         Args:
