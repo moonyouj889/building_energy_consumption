@@ -12,6 +12,7 @@ INPUT = 'buildings-energy-consumption-clean-data.csv'
 OUTPUT = DATA_FOLDER + 'chrono-comma-sep-' + INPUT
 FIELD_CLEANED_OUTPUT = DATA_FOLDER + 'data-to-pubsub-' + INPUT
 SCHEMA_OUTPUT = DATA_FOLDER + 'bq_schemas.txt'
+FIELDNAMES_OUTPUT = DATA_FOLDER + 'fieldNames.txt'
 
 # takes in header from original csv and prints them for user to visualize
 # also writes the json of schema to be saved in a separate file
@@ -120,10 +121,24 @@ if __name__ == '__main__':
         logging.info(
             "INFO: processed_data directory recreated.")
 
+    with open(FIELDNAMES_OUTPUT, 'w') as fieldNames_file:
+        splitNames = []
+        curr_fields = []
+        curr_building_id = 1
+        for field in fieldNames[1:]:
+            if field[4] != curr_building_id:
+                if len(curr_fields) > 0: splitNames.append(curr_fields)
+                curr_fields = []
+                curr_building_id = field[4]
+            curr_fields.append(field)
+        json.dump(splitNames, fieldNames_file)
+        logging.info(
+            "INFO: fieldNames.txt created.")
+
     with open(SCHEMA_OUTPUT, 'w') as schema_file:
         json.dump(bq_schemas, schema_file)
         logging.info(
-            "INFO: bq_schemas.txt recreated.")
+            "INFO: bq_schemas.txt created.")
 
     with open(OUTPUT, 'w') as chronological_data:
         chronological_rows = csv.DictWriter(chronological_data, 
@@ -131,15 +146,9 @@ if __name__ == '__main__':
                                             delimiter=',')
         chronological_rows.writeheader()
         chronological_rows.writerows(chrono_data)
-        logging.info("INFO: chronological data recreated.")
-
-    # with open(OUTPUT, 'r') as chrono_data, open(FIELD_CLEANED_OUTPUT, 'w') as field_fixed_file:
-    #     final_rows = csv.DictWriter(field_fixed_file, fieldnames=fieldNames, delimiter=',')
-    #     final_rows.writeheader()
-    #     final_rows.writerows(chrono_data)
-
+        logging.info("INFO: chronological data created.")
 
     with open(OUTPUT, 'rb') as f_in, gzip.open(OUTPUT + '.gz', 'wb') as f_out:
         f_out.writelines(f_in)
         logging.info(
-            "INFO: gzipFile of chronological data recreated.")
+            "INFO: gzipFile of chronological data created.")

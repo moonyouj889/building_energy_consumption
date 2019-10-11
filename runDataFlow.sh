@@ -15,24 +15,13 @@
 TOPIC_IN=energy
 TOPIC_OUT=energy_avgs
 
-echo "$BUCKET"
-echo "Launching currentConsumption.py project=$PROJECT_ID bucket=$BUCKET for BQ dataset=$DATASET and PubSub topic=$TOPIC"
-
-# python $MAIN \
-#     --runner Dataflow Runner \
-#     --project $PROJECT \
-#     --temp_location gs://$BUCKET/tmp/ \
-#     --streaming True \
-#     --input_topic projects/$PROJECT/topics/$TOPIC_IN\
-#     --output_table_load $DATASET.energy_history\
-#     --output_table_stream $DATASET.energy_avgs\ 
-#     --output_topic projects/$PROJECT/topics/$TOPIC_OUT\
+echo "Launching currentConsumption.py project=$PROJECT_ID bucket=$BUCKET for BQ dataset=buildings and PubSub topic=energy"
 
 python ./dataflow/currentConsumption.py \
     --runner DataflowRunner \
     --project $PROJECT_ID \
     --temp_location gs://$BUCKET/tmp/ \
-    --streaming true \
+    --streaming \
     --input_topic projects/$PROJECT_ID/topics/energy \
     --output_load_table_suffix buildings.energy_history \
     --output_stream_table buildings.energy_avgs \

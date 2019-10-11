@@ -15,14 +15,17 @@
 # limitations under the License.
 #
 
-import argparse
-import os
-import apache_beam as beam
-import apache_beam.transforms.window as window
-from apache_beam.pipeline import PipelineOptions
 import logging
 import json
 import csv
+import argparse
+import os
+
+import apache_beam as beam
+import apache_beam.transforms.window as window
+from apache_beam.pipeline import PipelineOptions
+from apache_beam.transforms.combiners import Mean
+
 
 
 # data gets collected 4 times per hour (every 15 minutes)
@@ -95,8 +98,37 @@ class BQTranslateTransformation:
             i += 1
         logging.info('pasedRow: {}'.format(row))
         return row
+
     #TODO: finish this method
-    def parse_method_stream(self, string_input): pass
+    def parse_method_stream(self, string_input):
+    ''' Same as parse_method_load(), but for hourly averages of each sensor, 
+        combined to one table
+
+        Args:
+            string_input: A comma separated list of values in the form of
+            timestamp,building id,general meter reading, and variable size of sub meter readings
+                ex1)2017-03-31T20:00:00-04:00,1,6443.0,1941.0,40.0
+                ex2)2017-03-31T20:00:00-04:00,2,5397.0,2590.0
+        Returns:
+            A dict mapping BigQuery column names as keys to the corresponding value
+            parsed from string_input. Deciding which schema to use by building_id.
+            The schemas of 8 buildings can be retrieved from bq_schema.txt, 
+            produced by processCSV.py and saved onto self.schemas
+
+                ex1)
+                    {'timestamp': '2017-03-31T20:00:00-04:00',
+                    'building_id': 1,
+                    '1_Gen': 6443,
+                    '1_Sub_1': 1941,
+                    '1_Sub_14': 40
+                    }
+                ex2)
+                    {'timestamp': '2017-03-31T20:00:00-04:00',
+                    'building_id': 2,
+                    '2_Gen': 5397,
+                    '2_Sub_1': 2590
+                    }
+        '''
 
 
 def run(argv=None):
@@ -162,15 +194,11 @@ def run(argv=None):
     # batch_size is a number of rows to be written to BQ per streaming API insert. 
     rows = (lines | 'StringToBigQueryRowLoad' >> beam.Map(lambda s: rowToBQ.parse_method_load(s)))
 
-    # load_schema taken from json file extracted from process csv. 
-    # in a realistic scenario, you won't be able to automate it like this.
-    # probably have to manually insert schema
-    # with open(SCHEMA_PATH) as bq_schema_file:
-    #    load_schema = json.load(bq_schema_file)
+    # load_schema taken from json file extracted from processCSV.py
+    # In a realistic scenario, you won't be able to automate it like this,
+    # but probably have to manually insert schema
     load_schema = rowToBQ.schemas
-    #logging.info('schema1: {}'.format(load_schema[0]))
-    #logging.info('schema\'s data type: {}'.format(type(load_schema[0])))
-    #logging.info('load_schema[0][\'fields\']{}'.format(load_schema[0]['fields']))
+
     # filter and load into 8 tables based off of the given table suffix argument
     load1 = (rows | 'FilterBuilding1' >> beam.Filter(lambda row: int(row['building_id']) == 1)
                   | 'B1BQLoad' >> beam.io.WriteToBigQuery(
@@ -203,16 +231,16 @@ def run(argv=None):
                   | 'B8BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '8',
                                     schema = load_schema[7],batch_size = ROWS_PER_DAY))
-    '''
+    
     # stream aggregation pipeline; saved to avgs
     # to be used for writing to BigQuery and publishing to Pubsub
     # sliding window of 1 hour, period of 15 minutes
     # TODO: beam.ParDo(GroupByKey()) to put meters together
     avgs = (lines
              | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(3600, 900, offset=0))
-             | 'ByMeter' >> )
+             | 'ByMeter' >> beam.)
              | 'GetAvgByMeter' >> beam.)
-    '''
+    
     '''
     classapache_beam.transforms.window.FixedWindows(size, offset=0)
     size
@@ -223,7 +251,7 @@ def run(argv=None):
     The offset must be a value in range [0, size). 
     If it is not it will be normalized to this range.
     '''
-    '''
+    
     # Convert row of str to BigQuery rows, and append to the BQ table.
     (avgs | 'StringToBigQueryRowStream' >> beam.Map(lambda s: rowToBQ.parse_method_stream(s))
           | 'WriteToBigQueryStream' >> beam.io.WriteToBigQuery(
@@ -235,8 +263,10 @@ def run(argv=None):
     # write message to pubsub with a different output_topic 
     # for users to subscribe to and retrieve real time analysis data
     (avgs | 'PublishToPubSub' >> )
-    '''
+    
     p.run()
+
+
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     run()
