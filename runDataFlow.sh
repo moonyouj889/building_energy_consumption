@@ -13,11 +13,9 @@
 
 PROJECT=$1
 shift
-BUCKET=$1
+BUCKET=$2
 shift
-MAIN=$1
-shift
-DATASET=$1
+DATASET=$3
 shift
 TOPIC_IN=energy
 TOPIC_OUT=energy_avgs

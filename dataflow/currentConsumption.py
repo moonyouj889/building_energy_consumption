@@ -146,7 +146,7 @@ def run(argv=None):
     # so it can be used by both batch ingest and stream aggregations
     lines = (p 
              | 'ReadFromPubSub' >> beam.io.ReadFromPubSub(
-                    topic=known_args.input_topic).with_output_types(bytes)) 
+                    topic=known_args.input_topic).with_output_types(bytes) 
              | 'ConvertFromBytesToStr' >> beam.Map(lambda b: b.decode('utf-8'))
             )
 
