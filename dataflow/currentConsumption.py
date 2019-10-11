@@ -171,34 +171,34 @@ def run(argv=None):
     #logging.info('schema\'s data type: {}'.format(type(load_schema[0])))
     #logging.info('load_schema[0][\'fields\']{}'.format(load_schema[0]['fields']))
     # filter and load into 8 tables based off of the given table suffix argument
-    load1 = (rows | 'FilterBuilding1' >> beam.Filter(lambda row: row['building_id'] == 1)
+    load1 = (rows | 'FilterBuilding1' >> beam.Filter(lambda row: int(row['building_id']) == 1)
                   | 'B1BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '1',
                                     schema = load_schema[0], batch_size = ROWS_PER_DAY))
-    load2 = (rows | 'FilterBuilding2' >> beam.Filter(lambda row: row['building_id'] == 2)
+    load2 = (rows | 'FilterBuilding2' >> beam.Filter(lambda row: int(row['building_id']) == 2)
                   | 'B2BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '2',
                                     schema = load_schema[1],batch_size = ROWS_PER_DAY))
-    load3 = (rows | 'FilterBuilding3' >> beam.Filter(lambda row: row['building_id'] == 3)
+    load3 = (rows | 'FilterBuilding3' >> beam.Filter(lambda row: int(row['building_id']) == 3)
                   | 'B3BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '3',
                                     schema = load_schema[2],batch_size = ROWS_PER_DAY))
-    load4 = (rows | 'FilterBuilding4' >> beam.Filter(lambda row: row['building_id'] == 4)
+    load4 = (rows | 'FilterBuilding4' >> beam.Filter(lambda row: int(row['building_id']) == 4)
                   | 'B4BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '4',
                                     schema = load_schema[3],batch_size = ROWS_PER_DAY))
-    load5 = (rows | 'FilterBuilding5' >> beam.Filter(lambda row: row['building_id'] == 5)
+    load5 = (rows | 'FilterBuilding5' >> beam.Filter(lambda row: int(row['building_id']) == 5)
                   | 'B5BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '5',
                                     schema = load_schema[4],batch_size = ROWS_PER_DAY))
-    load6 = (rows | 'FilterBuilding6' >> beam.Filter(lambda row: row['building_id'] == 6)
+    load6 = (rows | 'FilterBuilding6' >> beam.Filter(lambda row: int(row['building_id']) == 6)
                   | 'B6BQLoad' >> beam.io.WriteToBigQuery(table = known_args.output_l + '6',
                                 schema = load_schema[5],batch_size = ROWS_PER_DAY))
-    load7 = (rows | 'FilterBuilding7' >> beam.Filter(lambda row: row['building_id'] == 7)
+    load7 = (rows | 'FilterBuilding7' >> beam.Filter(lambda row: int(row['building_id']) == 7)
                   | 'B7BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '7',
                                     schema = load_schema[6],batch_size = ROWS_PER_DAY))
-    load8 = (rows | 'FilterBuilding8' >> beam.Filter(lambda row: row['building_id'] == 8)
+    load8 = (rows | 'FilterBuilding8' >> beam.Filter(lambda row: int(row['building_id']) == 8)
                   | 'B8BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '8',
                                     schema = load_schema[7],batch_size = ROWS_PER_DAY))
