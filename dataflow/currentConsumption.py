@@ -81,16 +81,15 @@ class BQTranslateTransformation:
             if i == 0: fieldName = 'timestamp'
             # first check what the building_id is, which is always the 2nd column
             elif i == 1:
-                schema = self.schemas[value].fields
+                schema = self.schemas[int(value)-1]['fields']
                 fieldName = 'building_id'
             # then retrieve the corresponding schema
             # and then match the values with field numbers to add to the dictionary
             else:
-                fieldName = schema[i].name
+                fieldName = schema[i]['name']
             row[fieldName] = value
             i += 1
         return row
-
     #TODO: finish this method
     def parse_method_stream(self, string_input): pass
 
@@ -167,38 +166,37 @@ def run(argv=None):
     load_schema = rowToBQ.schemas
 
     # filter and load into 8 tables based off of the given table suffix argument
-    load1 = (rows | 'FilterBuilding1' >> beam.Filter(lambda row: row.building_id == 1)
+    load1 = (rows | 'FilterBuilding1' >> beam.Filter(lambda row: row['building_id'] == 1)
                   | 'B1BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '1',
                                     schema = load_schema[0], batch_size = ROWS_PER_DAY))
-    load2 = (rows | 'FilterBuilding2' >> beam.Filter(lambda row: row.building_id == 2)
+    load2 = (rows | 'FilterBuilding2' >> beam.Filter(lambda row: row['building_id'] == 2)
                   | 'B2BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '2',
                                     schema = load_schema[1],batch_size = ROWS_PER_DAY))
-    load3 = (rows | 'FilterBuilding3' >> beam.Filter(lambda row: row.building_id == 3)
+    load3 = (rows | 'FilterBuilding3' >> beam.Filter(lambda row: row['building_id'] == 3)
                   | 'B3BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '3',
                                     schema = load_schema[2],batch_size = ROWS_PER_DAY))
-    load4 = (rows | 'FilterBuilding4' >> beam.Filter(lambda row: row.building_id == 4)
+    load4 = (rows | 'FilterBuilding4' >> beam.Filter(lambda row: row['building_id'] == 4)
                   | 'B4BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '4',
                                     schema = load_schema[3],batch_size = ROWS_PER_DAY))
-    load5 = (rows | 'FilterBuilding5' >> beam.Filter(lambda row: row.building_id == 5)
+    load5 = (rows | 'FilterBuilding5' >> beam.Filter(lambda row: row['building_id'] == 5)
                   | 'B5BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '5',
                                     schema = load_schema[4],batch_size = ROWS_PER_DAY))
-    load6 = (rows | 'FilterBuilding6' >> beam.Filter(lambda row: row.building_id == 6)
+    load6 = (rows | 'FilterBuilding6' >> beam.Filter(lambda row: row['building_id'] == 6)
                   | 'B6BQLoad' >> beam.io.WriteToBigQuery(table = known_args.output_l + '6',
                                 schema = load_schema[5],batch_size = ROWS_PER_DAY))
-    load7 = (rows | 'FilterBuilding7' >> beam.Filter(lambda row: row.building_id == 7)
+    load7 = (rows | 'FilterBuilding7' >> beam.Filter(lambda row: row['building_id'] == 7)
                   | 'B7BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '7',
                                     schema = load_schema[6],batch_size = ROWS_PER_DAY))
-    load8 = (rows | 'FilterBuilding8' >> beam.Filter(lambda row: row.building_id == 8)
+    load8 = (rows | 'FilterBuilding8' >> beam.Filter(lambda row: row['building_id'] == 8)
                   | 'B8BQLoad' >> beam.io.WriteToBigQuery(
                                     table = known_args.output_l + '8',
                                     schema = load_schema[7],batch_size = ROWS_PER_DAY))
-
     '''
     # stream aggregation pipeline; saved to avgs
     # to be used for writing to BigQuery and publishing to Pubsub
@@ -208,14 +206,11 @@ def run(argv=None):
              | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(3600, 900, offset=0))
              | 'ByMeter' >> )
              | 'GetAvgByMeter' >> beam.)
-
     '''
     '''
     classapache_beam.transforms.window.FixedWindows(size, offset=0)
-
     size
     Size of the window as seconds.
-
     offset
     Offset of this window as seconds since Unix epoch. 
     Windows start at t=N * size + offset where t=0 is the epoch. 
@@ -231,16 +226,11 @@ def run(argv=None):
                 create_disposition = beam.io.BigQueryDisposition.CREATE_IF_NEEDED,
                 write_disposition = beam.io.BigQueryDisposition.WRITE_APPEND)
     )
-
     # write message to pubsub with a different output_topic 
     # for users to subscribe to and retrieve real time analysis data
     (avgs | 'PublishToPubSub' >> )
-
     '''
-
     p.run()
-
-
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     run()
