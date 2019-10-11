@@ -66,7 +66,7 @@ def splitRow(row, columnNames):
     data = row.split(',')
     timestamp, building_id, prev_i = (data[0], 1, 1)
     for i in range(1, len(columnNamesList)):
-        next_id = int(columnNamesList[i][0])
+        next_id = int(columnNamesList[i][4])
         if building_id != next_id:
             messagesToAdd.append(','.join([timestamp, str(building_id)] + data[prev_i:i]))
             prev_i = i
