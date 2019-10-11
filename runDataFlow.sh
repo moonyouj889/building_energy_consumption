@@ -33,3 +33,13 @@ python $MAIN \
     --output_table_load $DATASET.energy_history\
     --output_table_stream $DATASET.energy_avgs\ 
     --output_topic projects/$PROJECT/topics/$TOPIC_OUT\
+
+python ./dataflow/currentConsumption.py \
+    --runner DataflowRunner \
+    --project $PROJECT \
+    --temp_location gs://$BUCKET/tmp/ \
+    --streaming True \
+    --input_topic projects/$PROJECT/topics/energy \
+    --output_load_table_suffix buildings.energy_history \
+    --output_stream_table buildings.energy_avgs \
+    --output_topic energy_avgs

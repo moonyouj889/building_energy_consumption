@@ -1,0 +1,11 @@
+{
+  "settings": {
+    "prettier.tabWidth": 4,
+    "python.formatting.provider": "none"
+  },
+  "folders": [
+    {
+      "path": "."
+    }
+  ]
+}
