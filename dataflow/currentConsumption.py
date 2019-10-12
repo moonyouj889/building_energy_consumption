@@ -110,7 +110,7 @@ class BQTranslateTransformation:
                 fieldName = schema[i]['name']
             row[fieldName] = value
             i += 1
-        logging.info('pasedRow: {}'.format(row))
+        logging.info('passed Row: {}'.format(row))
         return row
 
 
@@ -130,10 +130,11 @@ class BQTranslateTransformation:
                 'building_id': 1,
                 'Gen_Avg': 6443}
         '''
+        logging.info('printing datetime {}'.format(datetime.datetime.utcnow()))
         row = {'timestamp': datetime.datetime.utcnow(),
                 'building_id': int(k),
                 'Gen_Avg': int(v)}
-        logging.info('pasedRow for Streams: {}'.format(row))
+        logging.info('passed Row for Streams: {}'.format(row))
         return row
 
 
