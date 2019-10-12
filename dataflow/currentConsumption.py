@@ -27,6 +27,7 @@ import time
 import apache_beam as beam
 import apache_beam.transforms.window as window
 from apache_beam.transforms.combiners import Mean
+from apache_beam.transforms.combiners import Count
 # from apache_beam.pipeline import PipelineOptions
 from apache_beam.options.pipeline_options import GoogleCloudOptions
 from apache_beam.options.pipeline_options import PipelineOptions
@@ -307,8 +308,8 @@ def run(argv=None, save_main_session=True):
              # TODO: currently, groupbykey not working.. or the window is too wide that i have to wait a long time?
             #  | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2])))) 
             #  | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
-             | 'GetAvgByBuilding' >> Mean.PerKey())
-             | 'SumByBuilding' >> beam.CombinePerKey(sum))
+            #  | 'GetAvgByBuilding' >> Mean.PerKey())
+             | 'CountByBuilding' >> Count.PerKey())
 
     '''
     classapache_beam.transforms.window.FixedWindows(size, offset=0)
