@@ -24,8 +24,11 @@ import datetime
 
 import apache_beam as beam
 import apache_beam.transforms.window as window
-from apache_beam.pipeline import PipelineOptions
 from apache_beam.transforms.combiners import Mean
+# from apache_beam.pipeline import PipelineOptions
+from apache_beam.options.pipeline_options import GoogleCloudOptions
+from apache_beam.options.pipeline_options import PipelineOptions
+from apache_beam.options.pipeline_options import SetupOptions
 
 
 # data gets collected 4 times per hour (every 15 minutes)
@@ -162,7 +165,7 @@ class AddTimestampDoFn(beam.DoFn):
         # TimestampedValue.
         return beam.transforms.window.TimestampedValue(s, s.split(',')[0])
 
-def run(argv=None):
+def run(argv=None, save_main_session=True):
     '''Build and run the pipeline.'''
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -194,6 +197,16 @@ def run(argv=None):
     pipeline_options = PipelineOptions(pipeline_args)
     p = beam.Pipeline(options=pipeline_options)
     # schema = parse_table_schema_from_json(data_ingestion.schema_str)
+
+    # We also require the --project option to access --dataset
+    if options.view_as(GoogleCloudOptions).project is None:
+        parser.print_usage()
+        print(sys.argv[0] + ': error: argument --project is required')
+        sys.exit(1)
+
+    # We use the save_main_session option because one or more DoFn's in this
+    # workflow rely on global context (e.g., a module imported at module level).
+    options.view_as(SetupOptions).save_main_session = save_main_session
 
     rowToBQ = BQTranslateTransformation()
 
@@ -270,7 +283,8 @@ def run(argv=None):
     # second is the building_id, and third is the general meter reading
     avgs = (lines
             #  | 'AddTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, s.split(',')[0]))
-             | 'AddTimestamps' >>  beam.ParDo(AddTimestampDoFn())
+             | 'AddEventTimestamps' >> beam.Map(lambda s: beam.transforms.window.TimestampedValue(s, s.split(',')[0]))
+             | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
              # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
              | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(WINDOW_SIZE, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
@@ -294,7 +308,8 @@ def run(argv=None):
           | 'StrToBigQueryRowStream' >> beam.Map(lambda s: rowToBQ.parse_method_stream(s))
           | 'WriteToBigQueryStream' >> beam.io.WriteToBigQuery(
                 table = known_args.output_s,
-                schema = rowToBQ.stream_schema))
+                schema = rowToBQ.stream_schema,
+                options.view_as(GoogleCloudOptions).project))
 
     # write message to pubsub with a different output_topic 
     # for users to subscribe to and retrieve real time analysis data
