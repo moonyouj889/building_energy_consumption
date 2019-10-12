@@ -151,7 +151,6 @@ class BQTranslateTransformation:
 
 
 class WindowStartTimestampFn(beam.DoFn):
-
     def process(self, element,  window=beam.DoFn.WindowParam):
         window_start = window.start.to_utc_datetime()
         building_id, gen_avg = element
@@ -172,15 +171,15 @@ class KVSplitDoFn(beam.DoFn):
             return (0, 0)
 
 class AddTimestampDoFn(beam.DoFn):
-
     def process(self, s, timestamp=beam.DoFn.TimestampParam):
         # Extract the timestamp val from string data row
         # Wrap and emit the current entry and new timestamp in a
         # TimestampedValue.
         datetimeInISO = s.split(',')[0]
         tstamp = time.mktime(dateutil.parser.parse(datetimeInISO).timetuple())
-        logging.info('data timestamp=> {} <==> {}'.format(datetimeInISO, tstamp))
-        return beam.transforms.window.TimestampedValue(s, tstamp)
+        logging.info('data timestamp=> {} <==> {}, type={}'.format(datetimeInISO, tstamp, type(tstamp)))
+        return window.TimestampedValue(s, tstamp)
+
 
 def run(argv=None, save_main_session=True):
     '''Build and run the pipeline.'''
