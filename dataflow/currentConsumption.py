@@ -22,6 +22,7 @@ import argparse
 import os
 import datetime
 import dateutil.parser
+import time
 
 import apache_beam as beam
 import apache_beam.transforms.window as window
@@ -165,7 +166,7 @@ class AddTimestampDoFn(beam.DoFn):
         # Wrap and emit the current entry and new timestamp in a
         # TimestampedValue.
         datetimeInISO = s.split(',')[0]
-        timestamp = dateutil.parser.parse(datetimeInISO).timestamp()
+        timestamp = time.mktime(dateutil.parser.parse(datetimeInISO).timetuple())
         logging.info('data timestamp=> {} <==> {}'.format(datetimeInISO, timestamp))
         return beam.transforms.window.TimestampedValue(s, timestamp)
 
