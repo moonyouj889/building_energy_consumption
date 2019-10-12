@@ -162,22 +162,25 @@ class WindowStartTimestampFn(beam.DoFn):
 class KVSplitDoFn(beam.DoFn):
     def process(self, s, timestamp=beam.DoFn.WindowParam):
         values = s.split(',')
-        building_id = values[1]
-        gen_energy = int(float(values[2]))
-        logging.info('kvSplit: key: {}, value:{}'.format(building_id, gen_energy))
-        return (building_id, gen_energy)
-
+        try: 
+            building_id = values[1]
+            gen_energy = int(float(values[2]))
+            logging.info('kvSplit: key: {}, value:{}'.format(building_id, gen_energy))
+            return (building_id, gen_energy)
+        except:
+            logging.error('row doesn\'t have more than 3 columns!! row: {}'.format(s))
+            return (0, 0)
 
 class AddTimestampDoFn(beam.DoFn):
 
-    def process(self, s):
+    def process(self, s, timestamp=beam.DoFn.TimestampParam):
         # Extract the timestamp val from string data row
         # Wrap and emit the current entry and new timestamp in a
         # TimestampedValue.
         datetimeInISO = s.split(',')[0]
-        timestamp = time.mktime(dateutil.parser.parse(datetimeInISO).timetuple())
-        logging.info('data timestamp=> {} <==> {}'.format(datetimeInISO, timestamp))
-        return beam.transforms.window.TimestampedValue(s, timestamp)
+        tstamp = time.mktime(dateutil.parser.parse(datetimeInISO).timetuple())
+        logging.info('data timestamp=> {} <==> {}'.format(datetimeInISO, tstamp))
+        return beam.transforms.window.TimestampedValue(s, tstamp)
 
 def run(argv=None, save_main_session=True):
     '''Build and run the pipeline.'''
@@ -298,9 +301,9 @@ def run(argv=None, save_main_session=True):
     # fixed window of 1 hour, adjusted according to speedFactor
     window_size = round(WINDOW_SIZE / known_args.speedFactor)
     avgs = (lines
-             | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, 
-                                        time.mktime(dateutil.parser.parse(s.split(',')[0]).timetuple())))
-            #  | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
+            #  | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, 
+            #                             time.mktime(dateutil.parser.parse(s.split(',')[0]).timetuple())))
+             | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
              # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
              | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(window_size, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
