@@ -54,7 +54,7 @@ class BQTranslateTransformation:
             self.schemas = json.load(bq_schema_file)
         self.stream_schema = {'fields':[
                                 {'name': 'timestamp', 
-                                 'type': 'DATETIME', 
+                                 'type': 'TIMESTAMP', 
                                  'mode':'REQUIRED'},
                                 {'name': 'building_id',
                                  'type': 'INTEGER',
@@ -130,13 +130,14 @@ class BQTranslateTransformation:
                 'building_id': 1,
                 'Gen_Avg': 6443}
         '''
+        datetimeNow = str(datetime.datetime.utcnow())
         logging.info('printing datetime {}'.format(datetime.datetime.utcnow()))
-        row = {'timestamp': datetime.datetime.utcnow(),
+        logging.info('printing datetime in proper BQ format {}'.format(datetimeNow))
+        row = {'timestamp': datetimeNow,
                 'building_id': int(k),
                 'Gen_Avg': int(v)}
         logging.info('passed Row for Streams: {}'.format(row))
         return row
-
 
 def run(argv=None):
     '''Build and run the pipeline.'''
