@@ -169,7 +169,7 @@ class AddTimestampDoFn(beam.DoFn):
         timestamp = time.mktime(dateutil.parser.parse(datetimeInISO).timetuple())
         logging.info('data timestamp=> {} <==> {}'.format(datetimeInISO, timestamp))
         return beam.transforms.window.TimestampedValue(s, timestamp)
-d
+
 def run(argv=None, save_main_session=True):
     '''Build and run the pipeline.'''
     parser = argparse.ArgumentParser()
