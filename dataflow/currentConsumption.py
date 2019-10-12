@@ -54,7 +54,7 @@ class BQTranslateTransformation:
             self.schemas = json.load(bq_schema_file)
         self.stream_schema = {'fields':[
                                 {'name': 'timestamp', 
-                                 'type': 'TIMESTAMP', 
+                                 'type': 'DATETIME', 
                                  'mode':'REQUIRED'},
                                 {'name': 'building_id',
                                  'type': 'INTEGER',
