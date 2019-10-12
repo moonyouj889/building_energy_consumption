@@ -155,20 +155,8 @@ class WindowStartTimestampFn(beam.DoFn):
         window_start = window.start.to_utc_datetime()
         building_id, gen_avg = element
         logging.info('startWindow timestamped: {}'.format(window_start))
-        return ','.join([str(window_start), building_id, str(gen_avg)])
+        yield ','.join([str(window_start), building_id, str(gen_avg)])
 
-
-class KVSplitDoFn(beam.DoFn):
-    def process(self, s, timestamp=beam.DoFn.WindowParam):
-        values = s.split(',')
-        try: 
-            building_id = values[1]
-            gen_energy = int(float(values[2]))
-            logging.info('kvSplit: key: {}, value:{}'.format(building_id, gen_energy))
-            yield (building_id, gen_energy)
-        except:
-            logging.error('row doesn\'t have more than 3 columns!! row: {}'.format(s))
-            yield (0, 0)
 
 class AddTimestampDoFn(beam.DoFn):
     def process(self, s, timestamp=beam.DoFn.TimestampParam):
@@ -177,8 +165,18 @@ class AddTimestampDoFn(beam.DoFn):
         # TimestampedValue.
         datetimeInISO = s.split(',')[0]
         tstamp = time.mktime(dateutil.parser.parse(datetimeInISO).timetuple())
-        logging.info('data timestamp=> {} <==> {}, type={}'.format(datetimeInISO, tstamp, type(tstamp)))
-        return window.TimestampedValue(s, tstamp)
+        logging.info('data timestamp=> {} <==> {}, type={}'.format(
+                        datetimeInISO, tstamp, type(tstamp)))
+        yield window.TimestampedValue(s, tstamp)
+
+
+class KVSplitDoFn(beam.DoFn):
+    def process(self, s, timestamp=beam.DoFn.WindowParam):
+        values = s.split(',')
+        building_id = values[1]
+        gen_energy = int(float(values[2]))
+        logging.info('kvSplit: key: {}, value:{}'.format(building_id, gen_energy))
+        yield (building_id, gen_energy)
 
 
 def run(argv=None, save_main_session=True):
@@ -300,17 +298,17 @@ def run(argv=None, save_main_session=True):
     # fixed window of 1 hour, adjusted according to speedFactor
     window_size = round(WINDOW_SIZE / known_args.speedFactor)
     avgs = (lines
-             | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, 
-                                        time.mktime(dateutil.parser.parse(s.split(',')[0]).timetuple())))
-            #  | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
+            #  | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, 
+            #                             time.mktime(dateutil.parser.parse(s.split(',')[0]).timetuple())))
+             | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
              # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
              | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(window_size, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
-             # TODO: wrap as pardo(dofn()) to log out the k,v
              # TODO: currently, groupbykey not working.. or the window is too wide that i have to wait a long time?
             #  | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2])))) 
              | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
-             | 'GetAvgByBuilding' >> Mean.PerKey())
+            #  | 'GetAvgByBuilding' >> Mean.PerKey())
+             | 'SumByBuilding' >> beam.CombinePerKey(sum))
 
     '''
     classapache_beam.transforms.window.FixedWindows(size, offset=0)
