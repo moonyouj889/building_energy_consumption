@@ -28,7 +28,6 @@ from apache_beam.pipeline import PipelineOptions
 from apache_beam.transforms.combiners import Mean
 
 
-
 # data gets collected 4 times per hour (every 15 minutes)
 DATA_COLLECTION_FREQUENCY = 4
 ROWS_PER_DAY = 10
@@ -146,7 +145,7 @@ class BQTranslateTransformation:
         return row
 
 
-class BuildRecordFn(beam.DoFn):
+class WindowStartTimestampFn(beam.DoFn):
     def __init__(self):
         super(BuildAdsRecordFn, self).__init__()
 
@@ -154,6 +153,7 @@ class BuildRecordFn(beam.DoFn):
         window_start = window.start.to_utc_datetime()
         building_id, gen_avg = element
         return ','.join([window_start, building_id, str(gen_avg)])
+
 
 def run(argv=None):
     '''Build and run the pipeline.'''
