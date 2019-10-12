@@ -165,10 +165,10 @@ class KVSplitDoFn(beam.DoFn):
             building_id = values[1]
             gen_energy = int(float(values[2]))
             logging.info('kvSplit: key: {}, value:{}'.format(building_id, gen_energy))
-            return (building_id, gen_energy)
+            yield (building_id, gen_energy)
         except:
             logging.error('row doesn\'t have more than 3 columns!! row: {}'.format(s))
-            return (0, 0)
+            yield (0, 0)
 
 class AddTimestampDoFn(beam.DoFn):
     def process(self, s, timestamp=beam.DoFn.TimestampParam):
