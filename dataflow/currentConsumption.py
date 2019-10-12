@@ -21,6 +21,7 @@ import csv
 import argparse
 import os
 import datetime
+import dateutil.parser
 
 import apache_beam as beam
 import apache_beam.transforms.window as window
@@ -163,7 +164,10 @@ class AddTimestampDoFn(beam.DoFn):
         # Extract the timestamp val from string data row
         # Wrap and emit the current entry and new timestamp in a
         # TimestampedValue.
-        return beam.transforms.window.TimestampedValue(s, s.split(',')[0])
+        datetimeInISO = s.split(',')[0]
+        timestamp = dateutil.parser.parse(datetimeInISO).timestamp()
+        logging.info('data timestamp=> {} <==> {}'.format(datetimeInISO, timestamp))
+        return beam.transforms.window.TimestampedValue(s, timestamp)
 
 def run(argv=None, save_main_session=True):
     '''Build and run the pipeline.'''
@@ -282,9 +286,8 @@ def run(argv=None, save_main_session=True):
     # in string lines passed in map, first column is always the event timestamp, 
     # second is the building_id, and third is the general meter reading
     avgs = (lines
-            #  | 'AddTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, s.split(',')[0]))
-             | 'AddEventTimestamps' >> beam.Map(lambda s: beam.transforms.window.TimestampedValue(s, s.split(',')[0]))
-            # | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
+            #  | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, s.split(',')[0]))
+             | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
              # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
              | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(WINDOW_SIZE, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
