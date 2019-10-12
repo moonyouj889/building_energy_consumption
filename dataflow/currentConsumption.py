@@ -169,7 +169,7 @@ class AddTimestampDoFn(beam.DoFn):
         timestamp = time.mktime(dateutil.parser.parse(datetimeInISO).timetuple())
         logging.info('data timestamp=> {} <==> {}'.format(datetimeInISO, timestamp))
         return beam.transforms.window.TimestampedValue(s, timestamp)
-
+d
 def run(argv=None, save_main_session=True):
     '''Build and run the pipeline.'''
     parser = argparse.ArgumentParser()
@@ -287,8 +287,9 @@ def run(argv=None, save_main_session=True):
     # in string lines passed in map, first column is always the event timestamp, 
     # second is the building_id, and third is the general meter reading
     avgs = (lines
-            #  | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, s.split(',')[0]))
-             | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
+             | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, 
+                                        time.mktime(dateutil.parser.parse(s.split(',')[0]).timetuple())))
+            #  | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
              # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
              | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(WINDOW_SIZE, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
