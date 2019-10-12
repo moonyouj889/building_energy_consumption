@@ -36,6 +36,7 @@ ROWS_PER_DAY = 10
 SCHEMA_PATH = 'data/processed_data/bq_schemas.txt'
 # WINDOW_SIZE = 3600
 # WINDOW_PERIOD = 900
+# values for testing
 WINDOW_SIZE = 60
 WINDOW_PERIOD = 15
 
@@ -53,7 +54,7 @@ class BQTranslateTransformation:
         with open(schema_file) as bq_schema_file:
             self.schemas = json.load(bq_schema_file)
         self.stream_schema = {'fields':[
-                                {'name': 'timestamp', 
+                                {'name': 'window_start', 
                                  'type': 'TIMESTAMP', 
                                  'mode':'REQUIRED'},
                                 {'name': 'building_id',
@@ -114,30 +115,45 @@ class BQTranslateTransformation:
         return row
 
 
-    def parse_method_stream(self, k, v):
+    def parse_method_stream(self, s):
         ''' Same as parse_method_load(), but for hourly averages of each sensor, 
         combined to one table
 
         Args:
-            k,v pair of building Id and main meter reading
+            s of building Id, main meter reading avg, 
+            and start timestamp of the window the value belongs to
+
+            ex) '1,6443,2017-03-31T20:00:00-04:00'
         Returns:
             A dict mapping BigQuery column names as keys to the corresponding value
             parsed from (k, v). The timestamp uses the current time 
             (when the aggregation is calculated) instead of matching to the fake time
             in case of using this logic for real time data.
 
-                {'timestamp': [Actual Time Right Now],
+                {'window_start': [Actual Time Right Now],
                 'building_id': 1,
                 'Gen_Avg': 6443}
         '''
-        datetimeNow = str(datetime.datetime.utcnow())
-        logging.info('printing datetime {}'.format(datetime.datetime.utcnow()))
-        logging.info('printing datetime in proper BQ format {}'.format(datetimeNow))
-        row = {'timestamp': datetimeNow,
-                'building_id': int(k),
-                'Gen_Avg': int(v)}
+        # datetimeNow = str(datetime.datetime.utcnow())
+        # logging.info('printing datetime {}'.format(datetime.datetime.utcnow()))
+        # logging.info('printing datetime in proper BQ format {}'.format(datetimeNow))
+        logging.info('row of average vals in a window: {}'.format(s))
+        [window_start, building_id, gen_avg] = s.split(',')
+        row = {'window_start': window_start,
+                'building_id': int(building_id),
+                'Gen_Avg': int(float(gen_avg))}
         logging.info('passed Row for Streams: {}'.format(row))
         return row
+
+
+class BuildRecordFn(beam.DoFn):
+    def __init__(self):
+        super(BuildAdsRecordFn, self).__init__()
+
+    def process(self, element,  window=beam.DoFn.WindowParam):
+        window_start = window.start.to_utc_datetime()
+        building_id, gen_avg = element
+        return ','.join([window_start, building_id, str(gen_avg)])
 
 def run(argv=None):
     '''Build and run the pipeline.'''
@@ -243,13 +259,16 @@ def run(argv=None):
     # stream aggregation pipeline; saved to avgs
     # to be used for writing to BigQuery and publishing to Pubsub
     # sliding window of 1 hour, period of 15 minutes
-    # TODO: beam.ParDo(GroupByKey()) to put meters together
+    # in string lines passed in map, first column is always the event timestamp, 
+    # second is the building_id, and third is the general meter reading
     avgs = (lines
-             | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
+             | 'AddTimestamps' >> beam.Map(lambda s: beam.window.TimestampedValue(s, s.split(',')[0]))
+             # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
+             | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(WINDOW_SIZE, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
              | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2]))))
              | 'GetAvgByBuilding' >> Mean.PerKey())
-    
+
     '''
     classapache_beam.transforms.window.FixedWindows(size, offset=0)
     size
@@ -260,9 +279,11 @@ def run(argv=None):
     The offset must be a value in range [0, size). 
     If it is not it will be normalized to this range.
     '''
+    # start = timestamp - (timestamp - self.offset) % self.size
     
     # Convert row of str to BigQuery rows, and append to the BQ table.
-    (avgs | 'KVToBigQueryRowStream' >> beam.MapTuple(lambda k,v: rowToBQ.parse_method_stream(k,v))
+    (avgs | 'AddWindowStartTimestamp' >> beam.ParDo(WindowStartTimestampFn())
+          | 'StrToBigQueryRowStream' >> beam.Map(lambda s: rowToBQ.parse_method_stream(s))
           | 'WriteToBigQueryStream' >> beam.io.WriteToBigQuery(
                 table = known_args.output_s,
                 schema = rowToBQ.stream_schema))
