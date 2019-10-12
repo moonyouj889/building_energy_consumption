@@ -38,11 +38,11 @@ DATA_COLLECTION_FREQUENCY = 4
 ROWS_PER_DAY = 10
 # ROWS_PER_DAY = DATA_COLLECTION_FREQUENCY * 24
 SCHEMA_PATH = 'data/processed_data/bq_schemas.txt'
-# WINDOW_SIZE = 3600
+WINDOW_SIZE = 3600 # [sec] => 1 hr
 # WINDOW_PERIOD = 900
 # values for testing
-WINDOW_SIZE = 60
-WINDOW_PERIOD = 15
+# WINDOW_SIZE = 60 # []
+# WINDOW_PERIOD = 15
 
 
 class BQTranslateTransformation:
@@ -159,6 +159,15 @@ class WindowStartTimestampFn(beam.DoFn):
         return ','.join([str(window_start), building_id, str(gen_avg)])
 
 
+class KVSplitDoFn(beam.DoFn):
+    def process(self, s, timestamp=beam.DoFn.WindowParam):
+        values = s.split(',')
+        building_id = values[1]
+        gen_energy = int(float(values[2]))
+        logging.info('kvSplit: key: {}, value:{}'.format(building_id, gen_energy))
+        return (building_id, gen_energy)
+
+
 class AddTimestampDoFn(beam.DoFn):
 
     def process(self, s):
@@ -187,11 +196,15 @@ def run(argv=None, save_main_session=True):
         '--output_stream_table', dest='output_s', required=True,
         help='Output BQ table to write results to. "[datasetID].[tableID]"')
     parser.add_argument(
-        '--output_topic', required=True,
+        '--output_topic', dest='output_topic', required=True,
         help=('Output PubSub topic of the form ' +
               '"projects/<PROJECT>/topics/<TOPIC>".' +
               'ex) "projects/building-energy-consumption/' +
               'topics/energy_stream"')
+    parser.add_argument(
+        '--speedFactor', dest='speedFactor', required=False, default=60,
+        help=('How much faster do you want to simulate the windowing ' + 
+                '(Ex) 60 => 1 hr of data in 1 min'))
     )
 
     known_args, pipeline_args = parser.parse_known_args(argv)
@@ -283,17 +296,26 @@ def run(argv=None, save_main_session=True):
     
     # stream aggregation pipeline; saved to avgs
     # to be used for writing to BigQuery and publishing to Pubsub
-    # sliding window of 1 hour, period of 15 minutes
-    # in string lines passed in map, first column is always the event timestamp, 
-    # second is the building_id, and third is the general meter reading
+    # fixed window of 1 hour, adjusted according to speedFactor
+    window_size = round(WINDOW_SIZE / known_args.speedFactor)
     avgs = (lines
              | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, 
                                         time.mktime(dateutil.parser.parse(s.split(',')[0]).timetuple())))
             #  | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
              # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
-             | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(WINDOW_SIZE, offset=0))
+             | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(window_size, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
-             | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2]))))
+             # TODO: wrap as pardo(dofn()) to log out the k,v
+             # TODO: currently, groupbykey not working.. or the window is too wide that i have to wait a long time?
+
+             '''
+                // if we need to average over 60 minutes and speedup is 30x
+                // then we need to average over 2 minutes of sped-up stream
+                // window
+                size = round(WINDOW_SIZE / speedFactor)
+             '''
+            #  | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2])))) 
+             | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
              | 'GetAvgByBuilding' >> Mean.PerKey())
 
     '''
