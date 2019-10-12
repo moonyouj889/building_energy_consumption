@@ -194,8 +194,8 @@ def run(argv=None, save_main_session=True):
     # Initiate the pipeline using the pipeline arguments passed in from the
     # command line.  This includes information like where Dataflow should
     # store temp files, and what the project id is.
-    pipeline_options = PipelineOptions(pipeline_args)
-    p = beam.Pipeline(options=pipeline_options)
+    options = PipelineOptions(pipeline_args)
+    p = beam.Pipeline(options=options)
     # schema = parse_table_schema_from_json(data_ingestion.schema_str)
 
     # We also require the --project option to access --dataset
@@ -284,7 +284,7 @@ def run(argv=None, save_main_session=True):
     avgs = (lines
             #  | 'AddTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, s.split(',')[0]))
              | 'AddEventTimestamps' >> beam.Map(lambda s: beam.transforms.window.TimestampedValue(s, s.split(',')[0]))
-             | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
+            # | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
              # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
              | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(WINDOW_SIZE, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
@@ -309,7 +309,7 @@ def run(argv=None, save_main_session=True):
           | 'WriteToBigQueryStream' >> beam.io.WriteToBigQuery(
                 table = known_args.output_s,
                 schema = rowToBQ.stream_schema,
-                options.view_as(GoogleCloudOptions).project))
+                project = options.view_as(GoogleCloudOptions).project))
 
     # write message to pubsub with a different output_topic 
     # for users to subscribe to and retrieve real time analysis data
