@@ -300,14 +300,14 @@ def run(argv=None, save_main_session=True):
     avgs = (lines
             #  | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, 
             #                             time.mktime(dateutil.parser.parse(s.split(',')[0]).timetuple())))
-             | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
+            #  | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
              # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
              | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(window_size, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
              # TODO: currently, groupbykey not working.. or the window is too wide that i have to wait a long time?
             #  | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2])))) 
-             | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
-            #  | 'GetAvgByBuilding' >> Mean.PerKey())
+            #  | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
+             | 'GetAvgByBuilding' >> Mean.PerKey())
              | 'SumByBuilding' >> beam.CombinePerKey(sum))
 
     '''
