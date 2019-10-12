@@ -146,8 +146,6 @@ class BQTranslateTransformation:
 
 
 class WindowStartTimestampFn(beam.DoFn):
-    def __init__(self):
-        super(BuildAdsRecordFn, self).__init__()
 
     def process(self, element,  window=beam.DoFn.WindowParam):
         window_start = window.start.to_utc_datetime()
