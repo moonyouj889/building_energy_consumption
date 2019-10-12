@@ -300,9 +300,9 @@ def run(argv=None, save_main_session=True):
     # fixed window of 1 hour, adjusted according to speedFactor
     window_size = round(WINDOW_SIZE / known_args.speedFactor)
     avgs = (lines
-            #  | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, 
-            #                             time.mktime(dateutil.parser.parse(s.split(',')[0]).timetuple())))
-             | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
+             | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, 
+                                        time.mktime(dateutil.parser.parse(s.split(',')[0]).timetuple())))
+            #  | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
              # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
              | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(window_size, offset=0))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
