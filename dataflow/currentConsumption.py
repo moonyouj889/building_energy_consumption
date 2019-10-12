@@ -181,33 +181,33 @@ class AddTimestampDoFn(beam.DoFn):
 
 def run(argv=None, save_main_session=True):
     '''Build and run the pipeline.'''
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument(
         '--input_topic', dest='input_topic', required=True,
         help=('Input PubSub topic of the form '
               '"projects/<PROJECT>/topics/<TOPIC>".'))
-    parser.add_argument(
+    arg_parser.add_argument(
         '--output_load_table_suffix', dest='output_l', required=True,
         help=('Output BQ table to write results to (suffix). "[datasetID].[tableID]".' + 
               'Since we have 8 buildings, each building ' +
               'will be loaded on the corresponding table. ex) given argument, "energy.building" ' +
               'building 1\'s data will be loaded in energy.building1 ' ))
-    parser.add_argument(
+    arg_parser.add_argument(
         '--output_stream_table', dest='output_s', required=True,
         help='Output BQ table to write results to. "[datasetID].[tableID]"')
-    parser.add_argument(
+    arg_parser.add_argument(
         '--output_topic', dest='output_topic', required=True,
         help=('Output PubSub topic of the form ' +
               '"projects/<PROJECT>/topics/<TOPIC>".' +
               'ex) "projects/building-energy-consumption/' +
               'topics/energy_stream"')
-    parser.add_argument(
+    arg_parser.add_argument(
         '--speedFactor', dest='speedFactor', required=False, default=60,
         help=('How much faster do you want to simulate the windowing ' + 
                 '(Ex) 60 => 1 hr of data in 1 min'))
     )
 
-    known_args, pipeline_args = parser.parse_known_args(argv)
+    known_args, pipeline_args = arg_parser.parse_known_args(argv)
     #logging.info('parsed args: {}'.format(known_args))
     # Initiate the pipeline using the pipeline arguments passed in from the
     # command line.  This includes information like where Dataflow should
@@ -218,7 +218,7 @@ def run(argv=None, save_main_session=True):
 
     # We also require the --project option to access --dataset
     if options.view_as(GoogleCloudOptions).project is None:
-        parser.print_usage()
+        arg_parser.print_usage()
         print(sys.argv[0] + ': error: argument --project is required')
         sys.exit(1)
 
