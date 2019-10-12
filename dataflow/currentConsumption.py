@@ -306,13 +306,6 @@ def run(argv=None, save_main_session=True):
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
              # TODO: wrap as pardo(dofn()) to log out the k,v
              # TODO: currently, groupbykey not working.. or the window is too wide that i have to wait a long time?
-
-            '''
-            // if we need to average over 60 minutes and speedup is 30x
-            // then we need to average over 2 minutes of sped-up stream
-            // window
-            size = round(WINDOW_SIZE / speedFactor)
-            '''
             #  | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2])))) 
              | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
              | 'GetAvgByBuilding' >> Mean.PerKey())
