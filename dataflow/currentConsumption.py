@@ -200,7 +200,7 @@ def run(argv=None, save_main_session=True):
         help=('Output PubSub topic of the form ' +
               '"projects/<PROJECT>/topics/<TOPIC>".' +
               'ex) "projects/building-energy-consumption/' +
-              'topics/energy_stream"')
+              'topics/energy_stream"'))
     arg_parser.add_argument(
         '--speedFactor', dest='speedFactor', required=False, default=60,
         help=('How much faster do you want to simulate the windowing ' + 
