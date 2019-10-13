@@ -39,7 +39,7 @@ DATA_COLLECTION_FREQUENCY = 4
 ROWS_PER_DAY = 10
 # ROWS_PER_DAY = DATA_COLLECTION_FREQUENCY * 24
 SCHEMA_PATH = 'data/processed_data/bq_schemas.txt'
-WINDOW_SIZE = 3600 # [sec] => 1 hr
+# WINDOW_SIZE = 3600 # [sec] => 1 hr
 # WINDOW_PERIOD = 900
 # values for testing
 # WINDOW_SIZE = 60 # []
@@ -203,7 +203,7 @@ def run(argv=None, save_main_session=True):
               'ex) "projects/building-energy-consumption/' +
               'topics/energy_stream"'))
     arg_parser.add_argument(
-        '--speedFactor', dest='speedFactor', required=False, default=3600,
+        '--speedFactor', dest='speedFactor', required=False, default=300,
         help=('How wide do you want your window (in seconds) ' + 
                 '(Ex) 3600 => 1 hr window'))
 
@@ -323,7 +323,7 @@ def run(argv=None, save_main_session=True):
 
     # write message to pubsub with a different output_topic 
     # for users to subscribe to and retrieve real time analysis data
-    (avgs | 'PublishToPubSub' >> beam.io.WriteToPubSub(known_args.output_topic))
+    (avgs | 'PublishToPubSub' >> beam.io.WriteToPubSub('projects/{}/topics/{}'.format(options.view_as(GoogleCloudOptions).project,known_args.output_topic)))
     
     p.run()
 

@@ -15,9 +15,9 @@
 TOPIC_IN=energy
 TOPIC_OUT=energy_avgs
 
-echo "Launching currentConsumption.py project=$PROJECT_ID bucket=$BUCKET for BQ dataset=buildings and PubSub topic=energy"
+echo "Launching mainPipeline.py project=$PROJECT_ID bucket=$BUCKET for BQ dataset=buildings and PubSub topic=energy"
 
-python3 ./dataflow/currentConsumption.py \
+python ./dataflow/mainPipeline.py \
     --runner DataflowRunner \
     --project $PROJECT_ID \
     --temp_location gs://$BUCKET/tmp/ \
