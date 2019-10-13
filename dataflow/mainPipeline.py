@@ -159,16 +159,16 @@ class WindowStartTimestampFn(beam.DoFn):
         yield ','.join([str(window_start), building_id, str(gen_avg)])
 
 
-class AddTimestampDoFn(beam.DoFn):
-    def process(self, s, timestamp=beam.DoFn.TimestampParam):
-        # Extract the timestamp val from string data row
-        # Wrap and emit the current entry and new timestamp in a
-        # TimestampedValue.
-        datetimeInISO = s.split(',')[0]
-        tstamp = time.mktime(dateutil.parser.parse(datetimeInISO).timetuple())
-        logging.info('data timestamp=> {} <==> {}, type={}'.format(
-                        datetimeInISO, tstamp, type(tstamp)))
-        yield window.TimestampedValue(s, tstamp)
+# class AddTimestampDoFn(beam.DoFn):
+#     def process(self, s, timestamp=beam.DoFn.TimestampParam):
+#         # Extract the timestamp val from string data row
+#         # Wrap and emit the current entry and new timestamp in a
+#         # TimestampedValue.
+#         datetimeInISO = s.split(',')[0]
+#         tstamp = time.mktime(dateutil.parser.parse(datetimeInISO).timetuple())
+#         logging.info('data timestamp=> {} <==> {}, type={}'.format(
+#                         datetimeInISO, tstamp, type(tstamp)))
+#         yield window.TimestampedValue(s, tstamp)
 
 
 class KVSplitDoFn(beam.DoFn):
@@ -178,6 +178,7 @@ class KVSplitDoFn(beam.DoFn):
         gen_energy = int(float(values[2]))
         logging.info('kvSplit: key: {}, value:{}'.format(building_id, gen_energy))
         yield (building_id, gen_energy)
+
 
 
 def run(argv=None, save_main_session=True):
@@ -311,11 +312,11 @@ def run(argv=None, save_main_session=True):
              | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
              | 'GetAvgByBuilding' >> Mean.PerKey())
             #  | 'CountByBuilding' >> Count.PerKey())
+             | 'AddWindowStartTimestamp' >> beam.ParDo(WindowStartTimestampFn())
 
     
     # Convert row of str to BigQuery rows, and append to the BQ table.
-    (avgs | 'AddWindowStartTimestamp' >> beam.ParDo(WindowStartTimestampFn())
-          | 'StrToBigQueryRowStream' >> beam.Map(lambda s: rowToBQ.parse_method_stream(s))
+    (avgs | 'StrToBigQueryRowStream' >> beam.Map(lambda s: rowToBQ.parse_method_stream(s))
           | 'WriteToBigQueryStream' >> beam.io.WriteToBigQuery(
                 table = known_args.output_s,
                 schema = rowToBQ.stream_schema,
@@ -323,7 +324,9 @@ def run(argv=None, save_main_session=True):
 
     # write message to pubsub with a different output_topic 
     # for users to subscribe to and retrieve real time analysis data
-    (avgs | 'PublishToPubSub' >> beam.io.WriteToPubSub('projects/{}/topics/{}'.format(options.view_as(GoogleCloudOptions).project,known_args.output_topic)))
+    (avgs | 'Encode' >> beam.Map(lambda x: x.encode('utf-8')).with_output_types(bytes))
+          | 'PublishToPubSub' >> beam.io.WriteToPubSub('projects/{}/topics/{}'.format(
+                options.view_as(GoogleCloudOptions).project,known_args.output_topic)))
     
     p.run()
 
