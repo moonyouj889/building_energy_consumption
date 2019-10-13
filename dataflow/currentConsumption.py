@@ -203,9 +203,9 @@ def run(argv=None, save_main_session=True):
               'ex) "projects/building-energy-consumption/' +
               'topics/energy_stream"'))
     arg_parser.add_argument(
-        '--speedFactor', dest='speedFactor', required=False, default=60,
-        help=('How much faster do you want to simulate the windowing ' + 
-                '(Ex) 60 => 1 hr of data in 1 min'))
+        '--speedFactor', dest='speedFactor', required=False, default=3600,
+        help=('How wide do you want your window (in seconds) ' + 
+                '(Ex) 3600 => 1 hr window'))
 
     known_args, pipeline_args = arg_parser.parse_known_args(argv)
     #logging.info('parsed args: {}'.format(known_args))
@@ -297,31 +297,21 @@ def run(argv=None, save_main_session=True):
     # stream aggregation pipeline; saved to avgs
     # to be used for writing to BigQuery and publishing to Pubsub
     # fixed window of 1 hour, adjusted according to speedFactor
-    window_size = round(WINDOW_SIZE / known_args.speedFactor)
+    window_size = known_args.speedFactor
     avgs = (lines
             #  | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, 
             #                             time.mktime(dateutil.parser.parse(s.split(',')[0]).timetuple())))
             #  | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
              # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
-             | 'SetTimeWindow' >> beam.WindowInto(window.FixedWindows(window_size, offset=0))
+            # sliding window of [window_size] seconds, starting every [window_size/2] seconds 
+             | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(window_size, float(window_size)/2))
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
              # TODO: currently, groupbykey not working.. or the window is too wide that i have to wait a long time?
             #  | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2])))) 
              | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
-            #  | 'GetAvgByBuilding' >> Mean.PerKey())
-             | 'CountByBuilding' >> Count.PerKey())
+             | 'GetAvgByBuilding' >> Mean.PerKey())
+            #  | 'CountByBuilding' >> Count.PerKey())
 
-    '''
-    classapache_beam.transforms.window.FixedWindows(size, offset=0)
-    size
-    Size of the window as seconds.
-    offset
-    Offset of this window as seconds since Unix epoch. 
-    Windows start at t=N * size + offset where t=0 is the epoch. 
-    The offset must be a value in range [0, size). 
-    If it is not it will be normalized to this range.
-    '''
-    # start = timestamp - (timestamp - self.offset) % self.size
     
     # Convert row of str to BigQuery rows, and append to the BQ table.
     (avgs | 'AddWindowStartTimestamp' >> beam.ParDo(WindowStartTimestampFn())
