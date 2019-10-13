@@ -18,8 +18,8 @@ import sys
 # due to python2 not have datetime.datetime.fromisoformat(),
 # check before running of which version to load
 if sys.version_info >= (3, 0):
-    from datetimepy2 import iso_to_datetime
-else: from datetimepy3 import iso_to_datetime
+    from datetimepy3 import iso_to_datetime
+else: from datetimepy2 import iso_to_datetime
 
 
 TOPIC = 'energy'
@@ -101,7 +101,7 @@ def simulate(topic, meterData, firstObsTime, programStart, speedFactor, columnNa
         # split row splits the original data by building id
         # to simulate a scenario where the IoT Gateway only 
         # accumulates data by building prior to publishing on PubSub
-        messagesToAdd = splitRow(row, columnNames, event_time) 
+        messagesToAdd = splitRow(row, columnNames, str(event_time))
         publish(publisher, topic, messagesToAdd)
         logging.info('Sleeping {} seconds'.format(speedFactor))
         # wait for real time to match the event time
