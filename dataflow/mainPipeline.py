@@ -323,7 +323,7 @@ def run(argv=None, save_main_session=True):
 
     # write message to pubsub with a different output_topic 
     # for users to subscribe to and retrieve real time analysis data
-    # (avgs | 'PublishToPubSub' >> )
+    (avgs | 'PublishToPubSub' >> beam.io.WriteToPubSub(known_args.output_topic))
     
     p.run()
 

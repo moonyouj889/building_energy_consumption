@@ -3,4 +3,4 @@
 # use speedFactor=60 so 15 min of data is sent in 15 seconds in real time
 pip install --user python-dateutil
 
-python ./pubsub/send_meter_data.py --speedFactor 60 --project $PROJECT_ID
+python3 ./pubsub/send_meter_data.py --speedFactor 60 --project $PROJECT_ID
