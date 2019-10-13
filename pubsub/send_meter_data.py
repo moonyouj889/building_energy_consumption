@@ -13,17 +13,17 @@ import logging
 from google.cloud import pubsub
 import gzip
 import time
-# for python2
-# import dateutil.parser
+import sys
+
+# due to python2 not have datetime.datetime.fromisoformat(),
+# check before running of which version to load
+if sys.version_info >= (3, 0):
+    from datetimepy2 import iso_to_datetime
+else: from datetimepy3 import iso_to_datetime
+
 
 TOPIC = 'energy'
-INPUT = './chrono-comma-sep-buildings-energy-consumption-clean-data.csv.gz'
-
-
-def iso_to_datetime(timestamp):
-    # for python2
-    # return dateutil.parser.parse(timestamp)
-    return datetime.datetime.fromisoformat(timestamp)
+INPUT = './data/processed_data/chrono-comma-sep-buildings-energy-consumption-clean-data.csv.gz'
 
 
 def get_timestamp(row):
@@ -71,6 +71,7 @@ def splitRow(row, columnNames):
         if columnNamesList[i] == 'Gen' and i > 1:
             messagesToAdd.append(','.join([timestamp, str(building_id)] + data[prev_i:i]))
             prev_i = i
+            # building_id = next_id
             building_id += 1
     messagesToAdd.append(','.join([timestamp, str(building_id)] + data[prev_i:]))
     return messagesToAdd

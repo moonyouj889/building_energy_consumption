@@ -307,7 +307,7 @@ def run(argv=None, save_main_session=True):
              # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
              # TODO: currently, groupbykey not working.. or the window is too wide that i have to wait a long time?
             #  | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2])))) 
-            #  | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
+             | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
             #  | 'GetAvgByBuilding' >> Mean.PerKey())
              | 'CountByBuilding' >> Count.PerKey())
 
