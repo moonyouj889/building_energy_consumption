@@ -12,6 +12,7 @@ INPUT = 'buildings-energy-consumption-clean-data.csv'
 OUTPUT = DATA_FOLDER + 'chrono-comma-sep-' + INPUT
 FIELD_CLEANED_OUTPUT = DATA_FOLDER + 'data-to-pubsub-' + INPUT
 SCHEMA_OUTPUT = DATA_FOLDER + 'bq_schemas.txt'
+COMMA_SEP_FILE = DATA_FOLDER + 'comma-sep-data.csv'
 FIELDNAMES_OUTPUT = DATA_FOLDER + 'fieldNames.txt'
 
 # takes in header from original csv and prints them for user to visualize
@@ -99,27 +100,31 @@ if __name__ == '__main__':
 
     try:
         shutil.rmtree(DATA_FOLDER)
-        # csvPath = os.path.abspath(OUTPUT)
-        # os.unlink(csvPath)
         logging.info("INFO: Old processed csv found and removed.")
+        os.mkdir(DATA_FOLDER)
+        logging.info(
+            "INFO: processed_data directory recreated.")
     except:
         logging.info(
             "INFO: No previously processed data found.")
+        
 
     logging.info("Continuing csv processing...")
     logging.info("\n_______FIELD NAMES_______")
 
     # sort the order of ther rows by timestamps
-    with open('./data/' + INPUT, 'r') as jumbled_data:
-        jumbled_rows = csv.DictReader(jumbled_data, delimiter=';')
-        bq_schemas, fieldNames = translate_fieldNames(jumbled_rows.fieldnames)
-        jumbled_rows = csv.DictReader(jumbled_data, fieldnames=fieldNames, delimiter=';')
-        chrono_data = sorted(jumbled_rows, key=lambda row: (row['timestamp']))
-
-    if not os.path.exists(DATA_FOLDER):
-        os.mkdir(DATA_FOLDER)
-        logging.info(
-            "INFO: processed_data directory recreated.")
+    with open('./data/' + INPUT, 'r') as jumbled_data,  \
+            open(COMMA_SEP_FILE, 'w') as csv_data:
+        jumbled_rows = csv.reader(jumbled_data, delimiter=';')
+        jumbled_rows_header = next(jumbled_rows)
+        bq_schemas, fieldNames = translate_fieldNames(jumbled_rows_header)
+        # jumbled_rows = csv.DictReader(jumbled_data, delimiter=';')
+        # jumbled_rows.fieldnames = fieldNames
+        
+        csv_rows = csv.writer(csv_data, delimiter=',')
+        csv_rows.writerow(fieldNames)
+        csv_rows.writerows(jumbled_rows)
+        # chrono = jumbled_rows
 
     # with open(FIELDNAMES_OUTPUT, 'w') as fieldNames_file:
     #     splitNames = []
@@ -140,13 +145,16 @@ if __name__ == '__main__':
         logging.info(
             "INFO: bq_schemas.txt created.")
 
-    with open(OUTPUT, 'w') as chronological_data:
-        chronological_rows = csv.DictWriter(chronological_data, 
-                                            fieldnames=fieldNames, 
-                                            delimiter=',')
-        chronological_rows.writeheader()
+
+    with open(COMMA_SEP_FILE, 'r') as csv_reader, open(OUTPUT, 'w') as chronological_data:
+        jumbled_rows = csv.reader(csv_reader, delimiter=',')
+        chrono_data = sorted(jumbled_rows, key=lambda row: (row[0]))
+        chronological_rows = csv.writer(chronological_data, delimiter=',')
+        chronological_rows.writerow(fieldNames)
         chronological_rows.writerows(chrono_data)
+        # chronological_rows.writerows(jumbled_rows)
         logging.info("INFO: chronological data created.")
+    
 
     with open(OUTPUT, 'rb') as f_in, gzip.open(OUTPUT + '.gz', 'wb') as f_out:
         f_out.writelines(f_in)
