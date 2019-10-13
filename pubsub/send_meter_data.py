@@ -33,14 +33,6 @@ def get_timestamp(row):
     return iso_to_datetime(timestamp)
 
 
-def peek_timestamp(ifp):
-    # peek ahead to next line, get timestamp and go back
-    pos = ifp.tell()
-    line = ifp.readline()
-    ifp.seek(pos)
-    return get_timestamp(line)
-
-
 def peek_timestamp(data):
     # peek ahead to next line, retrieve timestamp and go back to top
     # since GzipFile.readline() moves onto the next line position
@@ -60,14 +52,12 @@ def publish(publisher, topic, messages):
             publisher.publish(topic, row)
 
 
-def splitRow(row, columnNames):
+def splitRow(row, columnNames, timestamp):
     messagesToAdd = []
     columnNamesList = columnNames.split(',')
     data = row.split(',')
-    timestamp, building_id, prev_i = (data[0], 1, 1)
+    building_id, prev_i = (1, 1)
     for i in range(1, len(columnNamesList)):
-        # next_id = int(columnNamesList[i][4])
-        # if building_id != next_id:
         if columnNamesList[i] == 'Gen' and i > 1:
             messagesToAdd.append(','.join([timestamp, str(building_id)] + data[prev_i:i]))
             prev_i = i
@@ -80,42 +70,47 @@ def splitRow(row, columnNames):
 def simulate(topic, meterData, firstObsTime, programStart, speedFactor, columnNames):
     # compute how many seconds you have to wait
     # to match the data's time increments to actual time passing
-    def get_seconds_to_match(event_time):
-        # how many seconds passed since start of simulation
-        real_delta_t = (datetime.datetime.utcnow() - programStart).seconds
-        # if speedFactor = 1, you simulate at the same rate as data's delta t
-        sim_delta_t = (event_time - firstObsTime).seconds / speedFactor
-        seconds_to_match = sim_delta_t - real_delta_t
-        return seconds_to_match
+    # def get_seconds_to_match(event_time):
+    #     # how many seconds passed since start of simulation
+    #     real_delta_t = (datetime.datetime.utcnow() - programStart).seconds
+    #     # if speedFactor = 1, you simulate at the same rate as data's delta t
+    #     sim_delta_t = (event_time - firstObsTime).seconds / speedFactor
+    #     seconds_to_match = sim_delta_t - real_delta_t
+    #     return seconds_to_match
 
-    messages = []
+    # messages = []
 
     for row in meterData:
         # retrieve timestamp of current row
-        event_time = get_timestamp(row)
+        event_time = datetime.datetime.utcnow()
 
         # if there should be waiting,
-        if get_seconds_to_match(event_time) > 0:
-            # publish the accumulated messages
-            publish(publisher, topic, messages)
-            messages = []  # empty out messages to send
+        # if get_seconds_to_match(event_time) > 0:
+        #     # publish the accumulated messages
+        #     publish(publisher, topic, messages)
+        #     messages = []  # empty out messages to send
 
-            # recompute wait time, since publishing takes time
-            seconds_to_match = get_seconds_to_match(event_time)
-            # despite waiting for publishing, if there still are seconds to match,
-            if seconds_to_match > 0:
-                logging.info('Sleeping {} seconds'.format(seconds_to_match))
-                # wait for real time to match the event time
-                time.sleep(seconds_to_match)
+        #     # recompute wait time, since publishing takes time
+        #     seconds_to_match = get_seconds_to_match(event_time)
+        #     # despite waiting for publishing, if there still are seconds to match,
+        #     if seconds_to_match > 0:
+        #         logging.info('Sleeping {} seconds'.format(seconds_to_match))
+        #         # wait for real time to match the event time
+        #         time.sleep(seconds_to_match)
         # if waiting time less than a second, can add more messages to send
         # split row splits the original data by building id
         # to simulate a scenario where the IoT Gateway only 
         # accumulates data by building prior to publishing on PubSub
-        messagesToAdd = splitRow(row, columnNames) 
-        messages = messages + messagesToAdd
+        messagesToAdd = splitRow(row, columnNames, event_time) 
+        publish(publisher, topic, messagesToAdd)
+        logging.info('Sleeping {} seconds'.format(speedFactor))
+        # wait for real time to match the event time
+        time.sleep(speedFactor)
+        
+        # messages = messages + messagesToAdd
 
     # left-over records; notify again
-    publish(publisher, topic, messages)
+    publish(publisher, topic, messagesToAdd)
 
 
 if __name__ == '__main__':
@@ -124,7 +119,8 @@ if __name__ == '__main__':
         'simulating streaming data')
     # this argument exists so testing won't take 15 minutes at least for one row
     parser.add_argument(
-        '--speedFactor', help='Ex) 60 => 1 hr of data in 1 min', required=True, type=float)
+        '--speedFactor', required=True, type=int,
+        help='in second basis: Ex) 60 => one event per minute, 900 => one event per 15 minutes')
     parser.add_argument(
         '--project', help='Ex) --project $PROJECT_ID', required=True)
     args = parser.parse_args()
