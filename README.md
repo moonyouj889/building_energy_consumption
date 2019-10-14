@@ -37,10 +37,18 @@ This is a data engineering project based on the Google Cloud Platform, specifica
 ### Structure of the Original Data
 
 As seen on the [original csv](./data/buildings-energy-consumption-clean-data.csv) exported from [Schneider Electric Exchange](https://shop.exchange.se.com/home), the original schema of the csv was:
-
 | Timestamp | 1_Main Meter_Active energy | 1_Sub Meter Id1_Active energy | ... | 8_Main Meter_Active energy | 8_Sub Meter Id1_Active energy |... | 8_Sub Meter Id9_Active energy |
+| --------- | -------------------------- | ----------------------------- | --- | -------------------------- | -------------------------- |--- | -------------------------- |
+| 2017-04-02T02:15:00-04:00 | 17779.0 | 3515.0 | ... | 16039.0 | 4471.0 | ... | 361.0 |
+
+The timstamp used the UTC ISO format, and the energy readings were taken every fifteen minutes, read in Watt-hour.
 
 ### Restructured Data for Simulation
+
+| Timestamp                 | 1_Main Meter_Active energy | 1_Sub Meter Id1_Active energy | ... | 8_Main Meter_Active energy | 8_Sub Meter Id1_Active energy | ... | 8_Sub Meter Id9_Active energy |
+| ------------------------- | -------------------------- | ----------------------------- | --- | -------------------------- | ----------------------------- | --- | ----------------------------- |
+| UTC ISO Format            | in Watt-Hour               | 3515.0                        | ... | 16039.0                    | 4471.0                        | ... | 361.0                         |
+| 2017-04-02T02:15:00-04:00 | 17779.0                    | 3515.0                        | ... | 16039.0                    | 4471.0                        | ... | 361.0                         |
 
 ### Pub/Sub, SpeedFactor, and Event Timestamps
 

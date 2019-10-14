@@ -142,8 +142,8 @@ class BQTranslateTransformation:
         logging.info('row of average vals in a window: {}'.format(s))
         [window_start, building_id, gen_avg] = s.split(',')
         row = {'window_start': window_start,
-                'building_id': int(building_id),
-                'Gen_Avg': int(float(gen_avg))}
+               'building_id': int(building_id),
+               'Gen_Avg': int(round(float(gen_avg)))}
         logging.info('passed Row for Streams: {}'.format(row))
         return row
 

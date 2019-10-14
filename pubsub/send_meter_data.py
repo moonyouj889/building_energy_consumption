@@ -30,6 +30,8 @@ else:
 
 TOPIC = 'energy'
 INPUT = './data/processed_data/chrono-comma-sep-buildings-energy-consumption-clean-data.csv.gz'
+# energy was measured every 15 minutes in the original data
+REAL_DATA_T_INCREMENT = 15 * 60
 
 
 def get_timestamp(row):
@@ -58,15 +60,17 @@ def publish(publisher, topic, messages):
             publisher.publish(topic, row)
 
 
-def splitRow(row, columnNames, timestamp):
+def splitRow(row, columnNames, timestamp, speedFactor):
     messagesToAdd = []
     columnNamesList = columnNames.split(',')
     data = row.split(',')
     building_id, prev_i = (1, 1)
     for i in range(1, len(columnNamesList)):
         if columnNamesList[i] == 'Gen' and i > 1:
+            values = data[prev_i:i]
+            map(lambda value: value * (speedFactor/REAL_DATA_T_INCREMENT), values)
             messagesToAdd.append(
-                ','.join([timestamp, str(building_id)] + data[prev_i:i]))
+                ','.join([timestamp, str(building_id)] + values))
             prev_i = i
             # building_id = next_id
             building_id += 1
@@ -109,7 +113,8 @@ def simulate(topic, meterData, firstObsTime, programStart, speedFactor, columnNa
         # split row splits the original data by building id
         # to simulate a scenario where the IoT Gateway only
         # accumulates data by building prior to publishing on PubSub
-        messagesToAdd = splitRow(row, columnNames, str(event_time))
+        messagesToAdd = splitRow(
+            row, columnNames, str(event_time), speedFactor)
         publish(publisher, topic, messagesToAdd)
         logging.info('Sleeping {} seconds'.format(speedFactor))
         # wait for real time to match the event time
