@@ -20,46 +20,42 @@ This is a data engineering project based on the Google Cloud Platform, specifica
 
 <p align="center"><img src="/imgs/architecture.png"></img></p>
 
-- Ingestion Layer (Compute Engine, Cloud Pub/Sub): 
+- Ingestion Layer (Compute Engine, Cloud Pub/Sub):
+
   - In a realistic scenario, the sensor to Pub/Sub architecture would look something like this:
-      <p align="center"><font size="-1">
-   <img src="https://storage.googleapis.com/gcp-community/tutorials/cloud-iot-gateways-rpi/gateway-arch.png" width="70%"></br>
-         Image taken from <a href="https://cloud.google.com/community/tutorials/cloud-iot-gateways-rpi)*">"Using Cloud IoT Core gateways with a Raspberry Pi"</a></font></p>
+       <p align="center"><font size="-1">
+    <img src="https://storage.googleapis.com/gcp-community/tutorials/cloud-iot-gateways-rpi/gateway-arch.png" width="70%"></br>
+          Image taken from <a href="https://cloud.google.com/community/tutorials/cloud-iot-gateways-rpi)*">"Using Cloud IoT Core gateways with a Raspberry Pi"</a></font></p>
   - Since the original data is a historical data of the energy consumption, a compute engine instance was used to simulate the ingested data published to Cloud Pub/Sub architecture.
 
 - Batch Layer (Cloud Dataflow, BigQuery): With the Apache Beam's PubsubIO, the messages published from the ingestion layer was read, translated into BigQuery rows, and were loaded to BigQuery.
 
-- Stream Layer (Cloud Dataflow, BigQuery, Cloud Pub/Sub):  On top of ingesting the data using PusubIO with the batch layer, the real time analysis of running average of the main meter readings of each building was conducted. The results were both stored in BigQuery and also published to a separate topic on Cloud Pub/Sub in case of creating a web interface for serving the real time data publicly.
-
+- Stream Layer (Cloud Dataflow, BigQuery, Cloud Pub/Sub): On top of ingesting the data using PusubIO with the batch layer, the real time analysis of running average of the main meter readings of each building was conducted. The results were both stored in BigQuery and also published to a separate topic on Cloud Pub/Sub in case of creating a web interface for serving the real time data publicly.
 
 ## Data Simulation
 
 ### Structure of the Original Data
+
 As seen on the [original csv](./data/buildings-energy-consumption-clean-data.csv) exported from [Schneider Electric Exchange](https://shop.exchange.se.com/home), the original schema of the csv was:
-Timestamp | 1_Main Meter_Active energy;1_Sub Meter Id1_Active energy;1_Sub Meter Id14_Active energy;2_Main Meter_Active energy;2_Sub Meter Id1_Active energy;2_Sub Meter Id3_Active energy;3_Main Meter_Active energy;3_Sub Meter Id1_Active energy;3_Sub Meter Id3_Active energy;4_Main Meter_Active energy;4_Sub Meter Id1_Active energy;4_Sub Meter Id3_Active energy;5_Main Meter_Active energy;5_Sub Meter Id1_Active energy;5_Sub Meter Id3_Active energy;6_Main Meter_Active energy;6_Sub Meter Id1_Active energy;6_Sub Meter Id3_Active energy;7_Main Meter_Active energy;7_Sub Meter Id1_Active energy;7_Sub Meter Id10_Active energy;7_Sub Meter Id11_Active energy;7_Sub Meter Id12_Active energy;7_Sub Meter Id13_Active energy;7_Sub Meter Id4_Active energy;7_Sub Meter Id5_Active energy;7_Sub Meter Id6_Active energy;7_Sub Meter Id7_Active energy;7_Sub Meter Id8_Active energy;7_Sub Meter Id9_Active energy;8_Main Meter_Active energy;8_Sub Meter Id1_Active energy;8_Sub Meter Id10_Active energy;8_Sub Meter Id11_Active energy;8_Sub Meter Id9_Active energy
-
- | Second Header
------------- | -------------
-Content from cell 1 | Content from cell 2
-Content in the first column | Content in the second column
-
+Timestamp | 1_Main Meter_Active energy | 1_Sub Meter Id1_Active energy | ... | 8_Main Meter_Active energy | 8_Sub Meter Id1_Active energy |... | 8_Sub Meter Id9_Active energy
+--------- | -------------------------- | ----------------------------- | --- | -------------------------- | --- | --------------------------
 
 ### Restructured Data for Simulation
-
-
 
 ### Pub/Sub, SpeedFactor, and Event Timestamps
 
 ## Data Pipeline
+
 ![Dataflow DAG](./imgs/dataflow.png)
 
 ## Results
+
 ![bq_history](./imgs/bq_historyData.png)
 
 ![bq_avgs](./imgs/bq_avgData.png)
 
 ![pubsub_out](./imgs/pubsubAvgMessages.png)
 
-
 ## Licensing
+
 This project uses the [Apache License 2.0](LICENSE)
