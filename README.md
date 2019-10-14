@@ -37,18 +37,24 @@ This is a data engineering project based on the Google Cloud Platform, specifica
 ### Structure of the Original Data
 
 As seen on the [original csv](./data/buildings-energy-consumption-clean-data.csv) exported from [Schneider Electric Exchange](https://shop.exchange.se.com/home), the original schema of the csv was:
-| Timestamp | 1_Main Meter_Active energy | 1_Sub Meter Id1_Active energy | ... | 8_Main Meter_Active energy | 8_Sub Meter Id1_Active energy |... | 8_Sub Meter Id9_Active energy |
-| --------- | -------------------------- | ----------------------------- | --- | -------------------------- | -------------------------- |--- | -------------------------- |
-| 2017-04-02T02:15:00-04:00 | 17779.0 | 3515.0 | ... | 16039.0 | 4471.0 | ... | 361.0 |
+
+| Timestamp | 1_Main Meter_Active energy | 1_Sub Meter Id1_Active energy | ... | 8_Sub Meter Id9_Active energy |
+| --------- | -------------------------- | ----------------------------- | --- | ----------------------------- |
+| 2017-04-02T02:15:00-04:00 | 17779.0 | 3515.0 | ... | 361.0 |
 
 The timstamp used the UTC ISO format, and the energy readings were taken every fifteen minutes, read in Watt-hour.
 
 ### Restructured Data for Simulation
 
-| Timestamp                 | 1_Main Meter_Active energy | 1_Sub Meter Id1_Active energy | ... | 8_Main Meter_Active energy | 8_Sub Meter Id1_Active energy | ... | 8_Sub Meter Id9_Active energy |
-| ------------------------- | -------------------------- | ----------------------------- | --- | -------------------------- | ----------------------------- | --- | ----------------------------- |
-| UTC ISO Format            | in Watt-Hour               | 3515.0                        | ... | 16039.0                    | 4471.0                        | ... | 361.0                         |
-| 2017-04-02T02:15:00-04:00 | 17779.0                    | 3515.0                        | ... | 16039.0                    | 4471.0                        | ... | 361.0                         |
+Since the original data was cleaned manually and all of the building data were gathered into a single table  by whoever posted the data on the online library, I wanted to adjust the schema to something more realistic in a scenario where multiple sensors from multiple buildings were sending their data. I assumed that the IoT Gateway that I tried to simulate received the data on building to building basis, and performed the most minimal function possible to reach Cloud Pub/Sub (e.g. gathering multiple sensor data with common building location to be aggregated into a single row).
+
+| timestamp | building_id | Gen | Sub_1 | Sub_3 |
+| --------- | ----------- | --- | ----- | --- |
+| YYYY-MM-DD HH:MM:SS | 1 | 17779.0 | 3515.0 | 1942.0 |
+
+| timestamp | building_id | Gen | Sub_1 | Sub_10 | Sub_11 | Sub_9 |
+| --------- | ----------- | --- | ----- | ------ | ------ | ----- |
+| YYYY-MM-DD HH:MM:SS | 8 | 16039.0 | 4471.0 | 253.0 | 2938.0 | 361.0 |
 
 ### Pub/Sub, SpeedFactor, and Event Timestamps
 
