@@ -1,12 +1,17 @@
-# Mentor Match
+# Building Energy Consumption
 
-Welcome to Mentor Match! A web application that allows users to connect with other users offering mentorship/lessons in regards to a specific topic. Visit us at [mentormatch.host](http://mentormatch.host)
+## Introduction
 
-![Main](./readmeImgs/landingScreenshot.png)
+This is a data engineering project based on the Google Cloud Platform, specifically utilizing the Pub/Sub-Dataflow-BigQuery severless stream processing. There are two problems that this project aims to solve:
+
+1. Provide an API for data scientists and cab dispatchers, for analyzing long term trends in cab behavior w.r.t metrics such as average pickups, dropoffs, occupancy, miles travelled etc.
+1. Enable a framework for real-time monitoring of cab locations, so that a user can know the unoccupied cabs across a city and zoom in on a specific neighborhood to spot and catch available cabs nearest to them.`
+
+Parallel processing pipelines of streaming data
 
 ## Table of Contents
 
-1. [Built With](#built-with)
+1. [Architecture](#architecture)
 1. [Getting Started](#getting-started)
    1. [Installing Dependencies](#installing-dependencies)
    1. [Development Environment](#development-environment)
@@ -16,20 +21,7 @@ Welcome to Mentor Match! A web application that allows users to connect with oth
 1. [Contributing](#contributing)
 1. [Licensing](#licensing)
 
-## Built With
-
-- **React** - Used to render the client
-- **React Router** - Used for front end routes
-- **Apollo Client** - GraphQl client for iuse with React
-- **GraphQL** - API queries
-- **Sequelize** - ORM
-- **PostgreSQL** - Database
-- **Node.JS** - Server
-- **Axios** - HTTP request with Redis search
-- **Redis Search** - Search functionality
-- **Geo suggest** - Location identificaiton for search functionality
-- **Firebase** - Authentication middleware
-- **Stripe** - Payment functionality (Only sending dummy payments)
+## Architecture
 
 ## Getting Started
 
@@ -50,41 +42,3 @@ To check the containers are running:
 ```sh
 docker-compose ps
 ```
-
-## Team
-
-- Product Owner: Alexander Charles
-- Scrum Master: Julie Jung
-- Developers: Alan Chang, Arjun Logeswaran
-
-## Screenshots
-
-![RecGuest](./readmeImgs/rec-guest.gif)
-![RecUser](./readmeImgs/rec-user.gif)
-
-Once the user signs in, the recommendations changes according to the user's city of residence.
-
-![Search1](./readmeImgs/search-cookingsteak.gif)
-![Search2](./readmeImgs/search-cookingsteakforbeginners.gif)
-
-MentorMatch can conduct O(1) search with the power of Redisearch and its inverted indexing methods.
-
-![UserProfile](./readmeImgs/userProfile.gif)
-
-Users can navigate through their profile page for previously booked lessons, upcoming lessons, and lessons that they offer.
-
-![LessonDetails](./readmeImgs/lessonDetails.gif)
-
-Every lesson has a lesson details page where the user can view information on the lesson, the mentor, and the reviews by other users who have taken the lesson in the past.
-
-## Styling
-
-MentorMatch uses the [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript/).
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
-
-## Licensing
-
-MentorMatch uses the [MIT License](LICENSE.md)
