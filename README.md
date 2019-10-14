@@ -38,7 +38,7 @@ This is a data engineering project based on the Google Cloud Platform, specifica
 
 As seen on the [original csv](./data/buildings-energy-consumption-clean-data.csv) exported from [Schneider Electric Exchange](https://shop.exchange.se.com/home), the original schema of the csv was:
 
-Timestamp | 1_Main Meter_Active energy | 1_Sub Meter Id1_Active energy | ... | 8_Main Meter_Active energy | 8_Sub Meter Id1_Active energy |... | 8_Sub Meter Id9_Active energy
+| Timestamp | 1_Main Meter_Active energy | 1_Sub Meter Id1_Active energy | ... | 8_Main Meter_Active energy | 8_Sub Meter Id1_Active energy |... | 8_Sub Meter Id9_Active energy |
 
 ### Restructured Data for Simulation
 
