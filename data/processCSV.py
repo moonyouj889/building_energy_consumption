@@ -1,3 +1,17 @@
+#    Copyright 2019 Julie Jung <moonyouj889@gmail.com>
+
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+
+#        http://www.apache.org/licenses/LICENSE-2.0
+
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
 import csv
 from datetime import datetime
 import gzip
@@ -42,11 +56,13 @@ column format to change to:
     ex) general meter for building 7: 7_Gen
         submeter 3 for building 2: 2_Sub_3
 '''
+
+
 def translate_fieldNames(fieldNames):
     buildingNum = ''
     # initialize schemas and field names since timestamp exists in all
     schemas = [{}, {}, {}, {}, {}, {}, {}, {}]
-    for schema in schemas: 
+    for schema in schemas:
         schema['fields'] = []
         schema['fields'].append({'name': 'timestamp',
                                  'type': 'TIMESTAMP',
@@ -58,8 +74,9 @@ def translate_fieldNames(fieldNames):
 
     for field in fieldNames:
         # if field is "Timestamp", continue to nxt iteration
-        if field == "Timestamp": continue
-        
+        if field == "Timestamp":
+            continue
+
         if buildingNum != field[0] and buildingNum != '':
             logging.info('')
         buildingNum = int(field[0])
@@ -67,7 +84,7 @@ def translate_fieldNames(fieldNames):
         meterTypeIndicator = field[2]
         schema = schemas[buildingNum-1]
         # in case new fields get added, add them manually in dataflow file
-        if meterTypeIndicator == 'M' or meterTypeIndicator == 'S': 
+        if meterTypeIndicator == 'M' or meterTypeIndicator == 'S':
             # handle general meter
             fieldType = 'FLOAT'
             fieldMode = 'NULLABLE'
@@ -107,7 +124,6 @@ if __name__ == '__main__':
     except:
         logging.info(
             "INFO: No previously processed data found.")
-        
 
     logging.info("Continuing csv processing...")
     logging.info("\n_______FIELD NAMES_______")
@@ -120,7 +136,7 @@ if __name__ == '__main__':
         bq_schemas, fieldNames = translate_fieldNames(jumbled_rows_header)
         # jumbled_rows = csv.DictReader(jumbled_data, delimiter=';')
         # jumbled_rows.fieldnames = fieldNames
-        
+
         csv_rows = csv.writer(csv_data, delimiter=',')
         csv_rows.writerow(fieldNames)
         csv_rows.writerows(jumbled_rows)
@@ -145,7 +161,6 @@ if __name__ == '__main__':
         logging.info(
             "INFO: bq_schemas.txt created.")
 
-
     with open(COMMA_SEP_FILE, 'r') as csv_reader, open(OUTPUT, 'w') as chronological_data:
         jumbled_rows = csv.reader(csv_reader, delimiter=',')
         chrono_data = sorted(jumbled_rows, key=lambda row: (row[0]))
@@ -154,7 +169,6 @@ if __name__ == '__main__':
         chronological_rows.writerows(chrono_data)
         # chronological_rows.writerows(jumbled_rows)
         logging.info("INFO: chronological data created.")
-    
 
     with open(OUTPUT, 'rb') as f_in, gzip.open(OUTPUT + '.gz', 'wb') as f_out:
         f_out.writelines(f_in)
