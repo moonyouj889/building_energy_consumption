@@ -310,9 +310,9 @@ def run(argv=None, save_main_session=True):
              # TODO: currently, groupbykey not working.. or the window is too wide that i have to wait a long time?
             #  | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2])))) 
              | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
-             | 'GetAvgByBuilding' >> Mean.PerKey())
+             | 'GetAvgByBuilding' >> Mean.PerKey()
             #  | 'CountByBuilding' >> Count.PerKey())
-             | 'AddWindowStartTimestamp' >> beam.ParDo(WindowStartTimestampFn())
+             | 'AddWindowStartTimestamp' >> beam.ParDo(WindowStartTimestampFn()))
 
     
     # Convert row of str to BigQuery rows, and append to the BQ table.
@@ -324,7 +324,7 @@ def run(argv=None, save_main_session=True):
 
     # write message to pubsub with a different output_topic 
     # for users to subscribe to and retrieve real time analysis data
-    (avgs | 'Encode' >> beam.Map(lambda x: x.encode('utf-8')).with_output_types(bytes))
+    (avgs | 'Encode' >> beam.Map(lambda x: x.encode('utf-8')).with_output_types(bytes)
           | 'PublishToPubSub' >> beam.io.WriteToPubSub('projects/{}/topics/{}'.format(
                 options.view_as(GoogleCloudOptions).project,known_args.output_topic)))
     
