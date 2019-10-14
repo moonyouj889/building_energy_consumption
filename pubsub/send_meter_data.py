@@ -68,7 +68,7 @@ def splitRow(row, columnNames, timestamp, speedFactor):
     for i in range(1, len(columnNamesList)):
         if columnNamesList[i] == 'Gen' and i > 1:
             values = data[prev_i:i]
-            map(lambda value: value * (speedFactor/REAL_DATA_T_INCREMENT), values)
+            # map(lambda value: value * (speedFactor/REAL_DATA_T_INCREMENT), values)
             messagesToAdd.append(
                 ','.join([timestamp, str(building_id)] + values))
             prev_i = i
