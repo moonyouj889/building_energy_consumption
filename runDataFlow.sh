@@ -11,9 +11,12 @@
 #                 created during the execution of the pipeline.
 
 
-
+DATASET=buildings
+LOAD_SUFFIX=energy_history
 TOPIC_IN=energy
 TOPIC_OUT=energy_avgs
+SPEEDFACTOR=300
+
 
 echo "Launching mainPipeline.py project=$PROJECT_ID bucket=$BUCKET for BQ dataset=buildings and PubSub topic=energy"
 
@@ -22,7 +25,8 @@ python ./dataflow/mainPipeline.py \
     --project $PROJECT_ID \
     --temp_location gs://$BUCKET/tmp/ \
     --streaming \
-    --input_topic projects/$PROJECT_ID/topics/energy \
-    --output_load_table_suffix buildings.energy_history \
-    --output_stream_table buildings.energy_avgs \
-    --output_topic energy_avgs
+    --input_topic projects/$PROJECT_ID/topics/$TOPIC_IN \
+    --output_load_table_suffix $DATASET.$LOAD_SUFFIX \
+    --output_stream_table $DATASET.$TOPIC_OUT \
+    --output_topic $TOPIC_OUT \
+    --speedFactor $SPEEDFACTOR

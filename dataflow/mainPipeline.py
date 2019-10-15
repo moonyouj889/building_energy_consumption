@@ -24,8 +24,6 @@ import time
 import apache_beam as beam
 import apache_beam.transforms.window as window
 from apache_beam.transforms.combiners import Mean
-from apache_beam.transforms.combiners import Count
-# from apache_beam.pipeline import PipelineOptions
 from apache_beam.options.pipeline_options import GoogleCloudOptions
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
@@ -33,14 +31,9 @@ from apache_beam.options.pipeline_options import SetupOptions
 
 # data gets collected 4 times per hour (every 15 minutes)
 DATA_COLLECTION_FREQUENCY = 4
-ROWS_PER_DAY = 10
+ROWS_PER_DAY = 10  # this is an arbitrary value set for testing
 # ROWS_PER_DAY = DATA_COLLECTION_FREQUENCY * 24
 SCHEMA_PATH = 'data/processed_data/bq_schemas.txt'
-# WINDOW_SIZE = 3600 # [sec] => 1 hr
-# WINDOW_PERIOD = 900
-# values for testing
-# WINDOW_SIZE = 60 # []
-# WINDOW_PERIOD = 15
 
 
 class BQTranslateTransformation:
@@ -48,37 +41,38 @@ class BQTranslateTransformation:
   format BigQuery will accept.'''
 
     def __init__(self):
-        # load_schema taken from json file extracted from processCSV.py 
+        # load_schema taken from json file extracted from processCSV.py
         # in a realistic scenario, you won't be able to automate it like this.
         # and probably have to manually insert schema
         dir_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        schema_file = os.path.join(dir_path, SCHEMA_PATH) 
+        schema_file = os.path.join(dir_path, SCHEMA_PATH)
         with open(schema_file) as bq_schema_file:
             self.schemas = json.load(bq_schema_file)
-        self.stream_schema = {'fields':[
-                                {'name': 'window_start', 
-                                 'type': 'TIMESTAMP', 
-                                 'mode':'REQUIRED'},
-                                {'name': 'building_id',
-                                 'type': 'INTEGER',
-                                 'mode': 'REQUIRED'},
-                                {'name': 'Gen_Avg',
-                                 'type': 'INTEGER',
-                                 'mode': 'REQUIRED'}]}
-
+        self.stream_schema = {'fields': [
+            {'name': 'window_start',
+             'type': 'TIMESTAMP',
+             'mode': 'REQUIRED'},
+            {'name': 'building_id',
+             'type': 'INTEGER',
+             'mode': 'REQUIRED'},
+            {'name': 'Gen_Avg',
+             'type': 'INTEGER',
+             'mode': 'REQUIRED'}]}
 
     def parse_method_load(self, string_input):
         '''This method translates a single line of comma separated values to a
         dictionary which can be loaded into BigQuery.
         Args:
             string_input: A comma separated list of values in the form of
-            timestamp,building id,general meter reading, and variable size of sub meter readings
+            timestamp,building id,general meter reading, and variable size of
+            sub meter readings
                 ex1)2017-03-31T20:00:00-04:00,1,6443.0,1941.0,40.0
                 ex2)2017-03-31T20:00:00-04:00,2,5397.0,2590.0
         Returns:
-            A dict mapping BigQuery column names as keys to the corresponding value
-            parsed from string_input. Deciding which schema to use by building_id.
-            The schemas of 8 buildings can be retrieved from bq_schema.txt, 
+            A dict mapping BigQuery column names as keys to
+            the corresponding value parsed from string_input.
+            Deciding which schema to use by building_id.
+            The schemas of 8 buildings can be retrieved from bq_schema.txt,
             produced by processCSV.py and saved onto self.schemas
 
                 ex1)
@@ -100,15 +94,16 @@ class BQTranslateTransformation:
         i = 0
         values = string_input.split(',')
         for value in values:
-            # if at first column, add the timestamp, 
-            #which is the same format no matter the building
-            if i == 0: fieldName = 'timestamp'
-            # first check what the building_id is, which is always the 2nd column
+            # if at first column, add the timestamp,
+            # which is the same format no matter the building
+            if i == 0:
+                fieldName = 'timestamp'
+            # first check building_id, which is always the 2nd column
             elif i == 1:
                 schema = self.schemas[int(value)-1]['fields']
                 fieldName = 'building_id'
-            # then retrieve the corresponding schema
-            # and then match the values with field numbers to add to the dictionary
+            # then retrieve the corresponding schema and then
+            # match the values with field numbers to add to the dictionary
             else:
                 fieldName = schema[i]['name']
             row[fieldName] = value
@@ -116,29 +111,23 @@ class BQTranslateTransformation:
         logging.info('passed Row: {}'.format(row))
         return row
 
-
     def parse_method_stream(self, s):
-        ''' Same as parse_method_load(), but for hourly averages of each sensor, 
-        combined to one table
+        ''' Same as parse_method_load(), but for hourly averages
+        of each sensor, combined to one table
 
         Args:
-            s of building Id, main meter reading avg, 
+            s of building Id, main meter reading avg,
             and start timestamp of the window the value belongs to
 
             ex) '1,6443,2017-03-31T20:00:00-04:00'
         Returns:
-            A dict mapping BigQuery column names as keys to the corresponding value
-            parsed from (k, v). The timestamp uses the current time 
-            (when the aggregation is calculated) instead of matching to the fake time
-            in case of using this logic for real time data.
+            A dict mapping BigQuery column names as keys to
+            the corresponding value parsed from (k, v).
 
-                {'window_start': [Actual Time Right Now],
+                {'window_start': [time at the start of current window],
                 'building_id': 1,
                 'Gen_Avg': 6443}
         '''
-        # datetimeNow = str(datetime.datetime.utcnow())
-        # logging.info('printing datetime {}'.format(datetime.datetime.utcnow()))
-        # logging.info('printing datetime in proper BQ format {}'.format(datetimeNow))
         logging.info('row of average vals in a window: {}'.format(s))
         [window_start, building_id, gen_avg] = s.split(',')
         row = {'window_start': window_start,
@@ -156,30 +145,17 @@ class WindowStartTimestampFn(beam.DoFn):
         yield ','.join([str(window_start), building_id, str(gen_avg)])
 
 
-# class AddTimestampDoFn(beam.DoFn):
-#     def process(self, s, timestamp=beam.DoFn.TimestampParam):
-#         # Extract the timestamp val from string data row
-#         # Wrap and emit the current entry and new timestamp in a
-#         # TimestampedValue.
-#         datetimeInISO = s.split(',')[0]
-#         tstamp = time.mktime(dateutil.parser.parse(datetimeInISO).timetuple())
-#         logging.info('data timestamp=> {} <==> {}, type={}'.format(
-#                         datetimeInISO, tstamp, type(tstamp)))
-#         yield window.TimestampedValue(s, tstamp)
-
-
 class KVSplitDoFn(beam.DoFn):
     def process(self, s, timestamp=beam.DoFn.WindowParam):
         values = s.split(',')
         building_id = values[1]
         gen_energy = int(float(values[2]))
-        logging.info('kvSplit: key: {}, value:{}'.format(building_id, gen_energy))
+        logging.info('kvSplit: ({},{})'.format(building_id, gen_energy))
         yield (building_id, gen_energy)
 
 
-
 def run(argv=None, save_main_session=True):
-    '''Build and run the pipeline.'''
+    # main function for running the pipeline
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument(
         '--input_topic', dest='input_topic', required=True,
@@ -187,10 +163,12 @@ def run(argv=None, save_main_session=True):
               '"projects/<PROJECT>/topics/<TOPIC>".'))
     arg_parser.add_argument(
         '--output_load_table_suffix', dest='output_l', required=True,
-        help=('Output BQ table to write results to (suffix). "[datasetID].[tableID]".' + 
+        help=('Output BQ table to write results to (suffix). ' +
+              '"[datasetID].[tableID]" ' +
               'Since we have 8 buildings, each building ' +
-              'will be loaded on the corresponding table. ex) given argument, "energy.building" ' +
-              'building 1\'s data will be loaded in energy.building1 ' ))
+              'will be loaded on the corresponding table.' +
+              'ex) given argument, "energy.building", ' +
+              'building 1\'s data will be loaded in energy.building1'))
     arg_parser.add_argument(
         '--output_stream_table', dest='output_s', required=True,
         help='Output BQ table to write results to. "[datasetID].[tableID]"')
@@ -202,134 +180,122 @@ def run(argv=None, save_main_session=True):
               'topics/energy_stream"'))
     arg_parser.add_argument(
         '--speedFactor', dest='speedFactor', required=False, default=300,
-        help=('How wide do you want your window (in seconds) ' + 
-                '(Ex) 3600 => 1 hr window'))
+        help=('How wide do you want your window (in seconds) ' +
+              '(Ex) 3600 => 1 hr window'))
 
-    known_args, pipeline_args = arg_parser.parse_known_args(argv)
-    #logging.info('parsed args: {}'.format(known_args))
     # Initiate the pipeline using the pipeline arguments passed in from the
     # command line.  This includes information like where Dataflow should
     # store temp files, and what the project id is.
+    known_args, pipeline_args = arg_parser.parse_known_args(argv)
     options = PipelineOptions(pipeline_args)
     p = beam.Pipeline(options=options)
-    # schema = parse_table_schema_from_json(data_ingestion.schema_str)
 
-    # We also require the --project option to access --dataset
+    # Require the --project option to access --dataset
     if options.view_as(GoogleCloudOptions).project is None:
         arg_parser.print_usage()
         print(sys.argv[0] + ': error: argument --project is required')
         sys.exit(1)
 
-    # We use the save_main_session option because one or more DoFn's in this
-    # workflow rely on global context (e.g., a module imported at module level).
+    # Use the save_main_session option because one or more DoFn's in this
+    # workflow rely on global context (e.g., module imported at module level).
     options.view_as(SetupOptions).save_main_session = save_main_session
 
     rowToBQ = BQTranslateTransformation()
 
-    # with open(SCHEMA_PATH) as bq_schema_file:
-    #     load_schema = json.load(load_schema_file)
-    #     stream_schema = json.load(load_schema_file)
-    ''' 
-    if new columns need to be added, add by
-    [SCHEMATYPE]_schema['fields'].append({
-        'name': [FIELDNAME],
-        'type': [FIELDTYPE],
-        'mode': [FIELDMODE],
-    })
-    '''
-
     # ingest pubsub messages, extract data, and save to lines
     # so it can be used by both batch ingest and stream aggregations
-    lines = (p 
-             | 'ReadFromPubSub' >> beam.io.ReadFromPubSub(
-                    topic=known_args.input_topic).with_output_types(bytes) 
-             | 'ConvertFromBytesToStr' >> beam.Map(lambda b: b.decode('utf-8'))
-            )
+    lines = (p | 'ReadFromPubSub' >> beam.io.ReadFromPubSub(
+                    topic=known_args.input_topic).with_output_types(bytes)
+               | 'ConvertFromBytesToStr' >> beam.Map(
+                    lambda b: b.decode('utf-8')))
 
-    # split to streaming inserts and batch load 
-    # because load is free and stream inserts costs money by size of data
-
-    # Convert row of str to BQ rows, and load batch data to table on a daily basis
-    # Set batch_size to rows per day to load sensor data in BQ on a daily basis
-    # batch_size is a number of rows to be written to BQ per streaming API insert. 
-    rows = (lines | 'StringToBigQueryRowLoad' >> beam.Map(lambda s: rowToBQ.parse_method_load(s)))
+    # Convert row of str to BQ rows, and load batch data to table
+    # on a daily basis by setting batch_size to rows per day.
+    # batch_size is a number of rows to be written to BQ
+    # per streaming API insert.
+    rows = (lines | 'StringToBigQueryRowLoad' >> beam.Map(
+                        lambda s: rowToBQ.parse_method_load(s)))
 
     # load_schema taken from json file extracted from processCSV.py
     # In a realistic scenario, you won't be able to automate it like this,
     # but probably have to manually insert schema
     load_schema = rowToBQ.schemas
 
-    # filter and load into 8 tables based off of the given table suffix argument
-    load1 = (rows | 'FilterBuilding1' >> beam.Filter(lambda row: int(row['building_id']) == 1)
+    # filter and load to 8 tables based off of the given table suffix argument
+    load1 = (rows | 'FilterBuilding1' >> beam.Filter(
+                        lambda row: int(row['building_id']) == 1)
                   | 'B1BQLoad' >> beam.io.WriteToBigQuery(
-                                    table = known_args.output_l + '1',
-                                    schema = load_schema[0], batch_size = ROWS_PER_DAY))
-    load2 = (rows | 'FilterBuilding2' >> beam.Filter(lambda row: int(row['building_id']) == 2)
+                        table=known_args.output_l + '1',
+                        schema=load_schema[0], batch_size=ROWS_PER_DAY))
+    load2 = (rows | 'FilterBuilding2' >> beam.Filter(
+                        lambda row: int(row['building_id']) == 2)
                   | 'B2BQLoad' >> beam.io.WriteToBigQuery(
-                                    table = known_args.output_l + '2',
-                                    schema = load_schema[1],batch_size = ROWS_PER_DAY))
-    load3 = (rows | 'FilterBuilding3' >> beam.Filter(lambda row: int(row['building_id']) == 3)
+                        table=known_args.output_l + '2',
+                        scheme=load_schema[1], batch_size=ROWS_PER_DAY))
+    load3 = (rows | 'FilterBuilding3' >> beam.Filter(
+                        lambda row: int(row['building_id']) == 3)
                   | 'B3BQLoad' >> beam.io.WriteToBigQuery(
-                                    table = known_args.output_l + '3',
-                                    schema = load_schema[2],batch_size = ROWS_PER_DAY))
-    load4 = (rows | 'FilterBuilding4' >> beam.Filter(lambda row: int(row['building_id']) == 4)
+                        table=known_args.output_l + '3',
+                        schema=load_schema[2], batch_size=ROWS_PER_DAY))
+    load4 = (rows | 'FilterBuilding4' >> beam.Filter(
+                        lambda row: int(row['building_id']) == 4)
                   | 'B4BQLoad' >> beam.io.WriteToBigQuery(
-                                    table = known_args.output_l + '4',
-                                    schema = load_schema[3],batch_size = ROWS_PER_DAY))
-    load5 = (rows | 'FilterBuilding5' >> beam.Filter(lambda row: int(row['building_id']) == 5)
+                        table=known_args.output_l + '4',
+                        schema=load_schema[3], batch_size=ROWS_PER_DAY))
+    load5 = (rows | 'FilterBuilding5' >> beam.Filter(
+                        lambda row: int(row['building_id']) == 5)
                   | 'B5BQLoad' >> beam.io.WriteToBigQuery(
-                                    table = known_args.output_l + '5',
-                                    schema = load_schema[4],batch_size = ROWS_PER_DAY))
-    load6 = (rows | 'FilterBuilding6' >> beam.Filter(lambda row: int(row['building_id']) == 6)
-                  | 'B6BQLoad' >> beam.io.WriteToBigQuery(table = known_args.output_l + '6',
-                                schema = load_schema[5],batch_size = ROWS_PER_DAY))
-    load7 = (rows | 'FilterBuilding7' >> beam.Filter(lambda row: int(row['building_id']) == 7)
+                        table=known_args.output_l + '5',
+                        schema=load_schema[4], batch_size=ROWS_PER_DAY))
+    load6 = (rows | 'FilterBuilding6' >> beam.Filter(
+                        lambda row: int(row['building_id']) == 6)
+                  | 'B6BQLoad' >> beam.io.WriteToBigQuery(
+                        table=known_args.output_l + '6',
+                        schema=load_schema[5], batch_size=ROWS_PER_DAY))
+    load7 = (rows | 'FilterBuilding7' >> beam.Filter(
+                        lambda row: int(row['building_id']) == 7)
                   | 'B7BQLoad' >> beam.io.WriteToBigQuery(
-                                    table = known_args.output_l + '7',
-                                    schema = load_schema[6],batch_size = ROWS_PER_DAY))
-    load8 = (rows | 'FilterBuilding8' >> beam.Filter(lambda row: int(row['building_id']) == 8)
+                        table=known_args.output_l + '7',
+                        schema=load_schema[6], batch_size=ROWS_PER_DAY))
+    load8 = (rows | 'FilterBuilding8' >> beam.Filter(
+                        lambda row: int(row['building_id']) == 8)
                   | 'B8BQLoad' >> beam.io.WriteToBigQuery(
-                                    table = known_args.output_l + '8',
-                                    schema = load_schema[7],batch_size = ROWS_PER_DAY))
-    
+                        table=known_args.output_l + '8',
+                        schema=load_schema[7], batch_size=ROWS_PER_DAY))
+
     # stream aggregation pipeline; saved to avgs
     # to be used for writing to BigQuery and publishing to Pubsub
     # fixed window of 1 hour, adjusted according to speedFactor
     window_size = known_args.speedFactor
-    avgs = (lines
-            #  | 'AddEventTimestamps' >> beam.Map(lambda s: window.TimestampedValue(s, 
-            #                             time.mktime(dateutil.parser.parse(s.split(',')[0]).timetuple())))
-            #  | 'AddEventTimestamps' >>  beam.ParDo(AddTimestampDoFn())
-             # | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(WINDOW_SIZE, WINDOW_PERIOD, offset=0))
-            # sliding window of [window_size] seconds, starting every [window_size/2] seconds 
-             | 'SetTimeWindow' >> beam.WindowInto(window.SlidingWindows(window_size, float(window_size)/2))
-             # splitting to k,v of buildingId (2nd column), general meter reading (3rd column)
-             # TODO: currently, groupbykey not working.. or the window is too wide that i have to wait a long time?
-            #  | 'ByBuilding' >> beam.Map(lambda s: (s.split(',')[1], int(float(s.split(',')[2])))) 
-             | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
-             | 'GetAvgByBuilding' >> Mean.PerKey()
-            #  | 'CountByBuilding' >> Count.PerKey())
-             | 'AddWindowStartTimestamp' >> beam.ParDo(WindowStartTimestampFn()))
+    avgs = (lines | 'SetTimeWindow' >> beam.WindowInto(
+                         window.SlidingWindows(
+                             window_size, float(window_size)/2))
+                  | 'ByBuilding' >> beam.ParDo(KVSplitDoFn())
+                  | 'GetAvgByBuilding' >> Mean.PerKey()
+                  | 'AddWindowStartTimestamp' >> beam.ParDo(
+                        WindowStartTimestampFn()))
 
-    
     # Convert row of str to BigQuery rows, and append to the BQ table.
-    (avgs | 'StrToBigQueryRowStream' >> beam.Map(lambda s: rowToBQ.parse_method_stream(s))
+    (avgs | 'StrToBigQueryRowStream' >> beam.Map(
+                lambda s: rowToBQ.parse_method_stream(s))
           | 'WriteToBigQueryStream' >> beam.io.WriteToBigQuery(
-                table = known_args.output_s,
-                schema = rowToBQ.stream_schema,
-                project = options.view_as(GoogleCloudOptions).project))
+                table=known_args.output_s,
+                schema=rowToBQ.stream_schema,
+                project=options.view_as(GoogleCloudOptions).project))
 
-    # write message to pubsub with a different output_topic 
+    # write message to pubsub with a different output_topic
     # for users to subscribe to and retrieve real time analysis data
-    (avgs | 'Encode' >> beam.Map(lambda x: x.encode('utf-8')).with_output_types(bytes)
-          | 'PublishToPubSub' >> beam.io.WriteToPubSub('projects/{}/topics/{}'.format(
-                options.view_as(GoogleCloudOptions).project,known_args.output_topic)))
-    
+    (avgs | 'Encode' >> beam.Map(
+                lambda x: x.encode('utf-8')).with_output_types(bytes)
+          | 'PublishToPubSub' >> beam.io.WriteToPubSub(
+                'projects/{}/topics/{}'.format(
+                    options.view_as(GoogleCloudOptions).project,
+                    known_args.output_topic)))
+    # nothing will run until this command
     p.run()
 
 
 if __name__ == '__main__':
     logging.basicConfig(
         format='%(levelname)s: %(message)s', level=logging.INFO)
-    # logging.getLogger().setLevel(logging.INFO)
     run()
