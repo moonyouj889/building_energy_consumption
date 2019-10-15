@@ -15,6 +15,7 @@ This is a data engineering project based on the Google Cloud Platform, specifica
 1. [BigQuery Schema](#)
 1. [Results](#results)
 1. [How To Run on GCP](#how-to-run-on-gcp)
+1. [Further Improvements](#further-improvements)
 1. [Licensing](#licensing)
 
 ## Architecture
@@ -84,6 +85,29 @@ The Dataflow DAG above provides the step by step view of how the data was ingest
 ![pubsub_out](./imgs/pubsubAvgMessages.png)
 
 ## How To Run on GCP
+Here are the simple steps to running this project on your own GCP console.
+1. Create a new VM instance on Compute Engine.
+1. Open two windows of the VM instance by clicking the 'SSH' button
+1. create and export these environment variables:
+   * PROJECT_ID=[your project id]
+   * BUCKET=[your GCP storage bucket]
+1. Setup git and python (Python2, specifically for this version of the project)
+1. 
+
+## Further Improvements
+### Improvements for Optimization
+- Partition the tables by time, to improve query performance and control costs read by a query. The Partition would be Date/time based, rather than the ingestion time so that the data analysts or scientists could retrieve the data that they desire from a specific time frame of the events. However, at what point of time the partition is made must be carefully chosen due to the Google's quota of 4,000 maxmimum number of partitions per partitioned table. Further details on the BigQuery quota can be found [here](https://cloud.google.com/bigquery/quotas) and pricing can be found [here](https://cloud.google.com/bigquery/pricing)
+
+- Split the pCollection at the beginning based on the `building_id` rather than the two separate times during stream and batch processings. Currently, this operation is repetitive since the stream processing's `GroupByKey` operation groups the key value pairs based on the key of `building_id` and the batch processing contains 8 separate filter functions to filter out the corresponding `building_id` data to load to its table. Although the current size of data is small enough to overlook this aspect, once the data becomes wider, this will be a costly process.
+
+- Figure out a way to unify the submeter labels. The raw data had submeter ids that were almost random and varying in size (building 1 had submeter 1 and 3 while building 7 had submeter 1, 10, 11, and 9), which caused the BigQuery load tables to have 8 separate tables, one for each building. Instead of this, by establishing a clear protocol of expressing the submeters, the data can be combined into a single table, and have the energy values be NULLABLE. 
+
+- For future cases of having the data be scaled up (more submeters, more buildings, other parameters like temperature, humidity, etc.), Cloud BigTable (HBase is based on the concept of BigTable) would be a choice to consider. Cloud Bigtable is specifically designed for sparsely populated tables to handle billions of rows and thousands of columns, and its popular use case is timeseries data. Although Cloud Bigtable is a noSQL database, the data analysts or scientists who are more familiar with the SQL syntax can use BigQuery to query data stored in Cloud Bigtable. It supports high read and write throughput at low latency, so it would not be a problem to store the running average data, which requires frequent udpates. 
+
+### Miscellaneous Improvements
+- Write the code in Python3, since Python2 is deprecated for Apache Beam (will stop serving for 2.7 starting on January 1st, 2020). Although the code was originally written in Python3, the VM instance on GCP used Python2 by default, so for saving time on setting up the environment, the code was edited to match Python2.
+
+- Create a serving layer for the Pub/Sub output message can be viewed through a UI.
 
 ## Licensing
 
