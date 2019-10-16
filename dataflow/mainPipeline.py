@@ -231,7 +231,7 @@ def run(argv=None, save_main_session=True):
                         lambda row: int(row['building_id']) == 2)
                   | 'B2BQLoad' >> beam.io.WriteToBigQuery(
                         table=known_args.output_l + '2',
-                        scheme=load_schema[1], batch_size=ROWS_PER_DAY))
+                        schema=load_schema[1], batch_size=ROWS_PER_DAY))
     load3 = (rows | 'FilterBuilding3' >> beam.Filter(
                         lambda row: int(row['building_id']) == 3)
                   | 'B3BQLoad' >> beam.io.WriteToBigQuery(
