@@ -179,7 +179,8 @@ def run(argv=None, save_main_session=True):
               'ex) "projects/building-energy-consumption/' +
               'topics/energy_stream"'))
     arg_parser.add_argument(
-        '--speedFactor', dest='speedFactor', required=False, default=300,
+        '--speedFactor', dest='speedFactor',
+        required=False, default=300, type=int,
         help=('How wide do you want your window (in seconds) ' +
               '(Ex) 3600 => 1 hr window'))
 
