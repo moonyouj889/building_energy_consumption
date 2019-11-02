@@ -31,7 +31,7 @@ This is a data engineering project based on the Google Cloud Platform, specifica
 
 - Batch Layer (Cloud Dataflow, BigQuery): With the Apache Beam's PubsubIO, the messages published from the ingestion layer was read, translated into BigQuery rows, and were loaded to BigQuery.
 
-- Stream Layer (Cloud Dataflow, BigQuery, Cloud Pub/Sub): On top of ingesting the data using PusubIO with the batch layer, the real time analysis of running average of the main meter readings of each building was conducted. The results were both stored in BigQuery and also published to a separate topic on Cloud Pub/Sub in case of creating a web interface for serving the real time data publicly.
+- Streaming Layer (Cloud Dataflow, BigQuery, Cloud Pub/Sub): On top of ingesting the data using PusubIO with the batch layer, the real time analysis of running average of the main meter readings of each building was conducted. The results were both stored in BigQuery and also published to a separate topic on Cloud Pub/Sub in case of creating a web interface for serving the real time data publicly.
 
 ## Data Simulation
 
