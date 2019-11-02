@@ -29,9 +29,11 @@ This is a data engineering project based on the Google Cloud Platform, specifica
           <i>Source: <a href="https://cloud.google.com/community/tutorials/cloud-iot-gateways-rpi)*">"Using Cloud IoT Core gateways with a Raspberry Pi"</a></i></font></p>
   - Since the original data is a historical data of the energy consumption, a compute engine instance was used to simulate the ingested data published to Cloud Pub/Sub architecture.
 
-- Batch Layer (Cloud Dataflow, BigQuery): With the Apache Beam's PubsubIO, the messages published from the ingestion layer was read, translated into BigQuery rows, and were loaded to BigQuery.
+- Batch Layer (Cloud Dataflow): With the Apache Beam's PubsubIO, the messages published from the ingestion layer were read, translated into BigQuery rows, and were loaded to BigQuery.
 
-- Streaming Layer (Cloud Dataflow, BigQuery, Cloud Pub/Sub): On top of ingesting the data using PusubIO with the batch layer, the real time analysis of running average of the main meter readings of each building was conducted. The results were both stored in BigQuery and also published to a separate topic on Cloud Pub/Sub in case of creating a web interface for serving the real time data publicly.
+- Streaming Layer (Cloud Dataflow): On top of ingesting the data using PusubIO with the batch layer, the real time analysis of running average of the main meter readings of each building was conducted. The results were both stored in BigQuery and also published to a separate topic on Cloud Pub/Sub in case of creating a web interface for serving the real time data publicly.
+
+- Serving Layer (BigQuery, Cloud Pub/Sub): As mentioned in both batch layerand streaming layer, the historical data and real time data were stored in BigQuery for quick data access or analysis and the real time data was also published to Cloud Pub/Sub as a source for streaming ingestion of running average values, in case for a UI in the future. 
 
 ## Data Simulation
 
