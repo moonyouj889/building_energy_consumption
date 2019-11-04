@@ -77,7 +77,7 @@ In the stream processing, the `SlidingWindows` was set, and the general meter re
 
  <p align="center"><font size="-1">
     <img src="https://beam.apache.org/images/sliding-time-windows.png" width="70%"></br>
-          <i>Source: <a href="https://beam.apache.org/documentation/programming-guide/)*">"Beam Programming Guide"</i></a></font></p>
+          <i>Source: <a href="https://beam.apache.org/documentation/programming-guide/#windowing)*">"Beam Programming Guide"</i></a></font></p>
 
 The `SlidingWindows` on an hourly basis with period of half an hour was specifically chosen instead of a regular `FixedWindows`, because the default `FixedWindows` waits until the end of the window to produce the aggregation results. Since the aim of the stream pipeline was to calculate the real time average of the energy readings, the `SlidingWindows` was chosen.
 
